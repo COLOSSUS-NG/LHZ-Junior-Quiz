@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="LHZ Quiz">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <title>RCCG LHZ | Smart Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); }
+        .btn-primary { background: linear-gradient(to right, #2563eb, #1d4ed8); transition: all 0.3s ease; }
+        .btn-primary:active { transform: scale(0.98); }
+        .option-label { transition: all 0.2s ease; border: 2px solid #e2e8f0; }
+        .option-label:hover { border-color: #2563eb; background: #eff6ff; }
+        .progress-fill { transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div id="app" class="w-full max-w-lg glass-card overflow-hidden">
+        <div id="progress-container" class="hidden h-3 w-full bg-gray-200">
+            <div id="progress-bar" class="progress-fill h-full bg-blue-600 w-0"></div>
+        </div>
+
+        <header class="pt-8 pb-4 px-8 text-center">
+            <h1 class="text-xl font-extrabold text-slate-800 tracking-tight uppercase">RCCG Lighthouse Zone</h1>
+            <p class="text-blue-600 font-semibold text-xs tracking-widest uppercase">2026 Junior Church Assessment</p>
+        </header>
+
+        <div id="reg-view" class="p-8 space-y-4">
+            <div class="space-y-1">
+                <label class="text-xs font-bold text-slate-500 ml-1 uppercase">Student Name</label>
+                <input type="text" id="reg-name" placeholder="Surname First..." class="w-full p-4 bg-gray-50 rounded-xl outline-none border focus:border-blue-500 uppercase">
+            </div>
+            <div class="space-y-1">
+                <label class="text-xs font-bold text-slate-500 ml-1 uppercase">Parish</label>
+                <input type="text" id="reg-parish" placeholder="Enter Parish" class="w-full p-4 bg-gray-50 rounded-xl outline-none border focus:border-blue-500 uppercase">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-500 ml-1 uppercase">Age Group</label>
+                    <select id="reg-age" class="w-full p-4 bg-gray-50 rounded-xl outline-none border">
+                        <option value="">Select</option>
+                        <option>9-12</option><option>13-15</option><option>16-19</option>
+                    </select>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-500 ml-1 uppercase">Area</label>
+                    <select id="reg-area" class="w-full p-4 bg-gray-50 rounded-xl outline-none border">
+                        <option value="">Select</option>
+                        <option>Lighthouse Area</option><option>Disciples Assembly Area</option><option>Love Tabernacle Area</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="showInstructions()" class="btn-primary flex-1 text-white py-5 rounded-2xl font-bold shadow-xl mt-4 uppercase">Continue</button>
+                <button onclick="showAdmin()" class="bg-gray-200 text-gray-600 px-4 py-5 rounded-2xl mt-4">⚙️</button>
+            </div>
+        </div>
+
+        <div id="admin-view" class="hidden p-8">
+            <h2 class="text-xl font-bold mb-4">Admin Portal</h2>
+            <input type="password" id="admin-pass" placeholder="Password" class="w-full p-4 border rounded-xl mb-4">
+            <div id="admin-content" class="hidden">
+                <div id="results-list" class="space-y-2 max-h-60 overflow-y-auto mb-4 text-xs"></div>
+                <button onclick="clearResults()" class="text-red-500 font-bold">Clear All Data</button>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="checkAdmin()" id="admin-login-btn" class="bg-blue-600 text-white p-4 rounded-xl flex-1">Login</button>
+                <button onclick="showView('reg-view')" class="bg-gray-100 p-4 rounded-xl">Back</button>
+            </div>
+        </div>
+
+        <div id="instructions-view" class="hidden p-8">
+            <h2 class="text-2xl font-bold text-slate-800 mb-6">Instructions</h2>
+            <div id="inst-details" class="space-y-4 mb-8"></div>
+            <button onclick="startQuiz()" class="btn-primary w-full text-white py-5 rounded-2xl font-bold shadow-xl uppercase">Start Assessment</button>
+        </div>
+
+        <div id="quiz-view" class="hidden p-8">
+            <div class="flex justify-between items-end mb-8">
+                <div>
+                    <p id="q-cat" class="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-1"></p>
+                    <p id="progress-text" class="text-sm text-slate-400 font-medium"></p>
+                </div>
+                <div class="text-right">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Timer</p>
+                    <p id="quiz-timer" class="text-2xl font-mono font-bold text-red-500">00:00</p>
+                </div>
+            </div>
+            <div id="question-box" class="min-h-[250px]">
+                <h3 id="q-text" class="text-xl font-bold text-slate-800 leading-snug mb-8"></h3>
+                <div id="options" class="space-y-3"></div>
+                <div id="spelling-input-box" class="hidden space-y-4">
+                    <button onclick="replaySpelling()" class="w-full p-4 bg-blue-100 text-blue-700 rounded-xl font-bold">🔊 Listen Again</button>
+                    <input type="text" id="spelling-ans" class="w-full p-4 border-2 rounded-xl text-center font-bold text-xl uppercase outline-blue-500" placeholder="Type word here...">
+                </div>
+            </div>
+            <button onclick="nextQuestion()" class="btn-primary w-full text-white py-5 rounded-2xl font-bold shadow-lg mt-8 uppercase">Submit Answer</button>
+        </div>
+
+        <div id="result-view" class="hidden p-8 text-center">
+            <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <h2 class="text-2xl font-extrabold text-slate-800 mb-1">Assessment Complete</h2>
+            <div id="student-summary" class="text-slate-500 text-sm mb-6 uppercase font-semibold"></div>
+            <div id="final-scores" class="bg-slate-50 rounded-2xl p-6 mb-6 text-left space-y-2 text-xs"></div>
+            <div id="sync-status" class="mb-6 text-sm font-bold text-blue-600 italic">Syncing with database...</div>
+            <button onclick="sendWhatsApp()" class="w-full bg-[#25D366] text-white py-4 rounded-xl font-bold shadow-lg uppercase">Backup via WhatsApp</button>
+        </div>
+    </div>
+
+    <script>
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx5GsGu0XDxEdd3c9P_R2y0kiiPEiI0Q5TOPmqXDokGGM6wPLr7K4-ZVg7n_CPD__Bodg/exec';
+    const WHATSAPP_NUMBER = '2347032079327';
+    const ADMIN_PASS = 'LHZ2026';
+
+    // SPELLING POOLS (Bible & General)
+    const sp_9_12 = { 
+        gen: ["Algorithm", "Encryption", "Interface", "Resolution", "Bandwidth", "Processor", "Bitrate", "Firewall", "JavaScript", "Database", "Stationery", "Complement", "Principal", "Council", "Whether", "Desert", "Coarse", "Altar", "Presence", "Patient", "Caramelize", "Kneading", "Infusion", "Zest", "Marinate", "Ferment", "Seasoning", "Confection", "Protagonist", "Antagonist", "Quixotic", "Muggle", "Metaphor", "Exposition", "Onomatopoeia", "Foreshadow"], 
+        bib: ["Sarah", "Hagar", "Rebekah", "Leah", "Rachel", "Dinah", "Tamar", "Asenath", "Zipporah", "Miriam", "Rahab", "Deborah", "Jael", "Orpah", "Hannah", "Peninnah", "Abigail", "Michal", "Bathsheba", "Keturah", "Athaliah", "Jezebel", "Huldah", "Vashti", "Judith", "Susanna", "Martha", "Salome", "Joanna", "Claudia", "Phoebe", "Priscilla", "Lydia", "Lois", "Sapphira", "Solomon", "Saul", "Rehoboam", "Jehoshaphat", "Jehoram", "Ahaziah", "Athaliah", "Amaziah", "Hezekiah", "Manasseh", "Jehoahaz", "Jehoiakim", "Jehoiachin", "Zedekiah", "Jeroboam", "Jehoash", "Zechariah", "Shallum", "Menahem", "Pekahiah", "Melchizedek", "Abimelech", "Chedorlaomer", "Amraphel", "Benhadad", "Shalmaneser", "Sennacherib", "Esarhaddon", "Belshazzar", "Artaxerxes", "Xerxes", "David", "Creation", "Exodus", "Passover", "Pentecost", "Trumpets", "Atonement", "Tabernacles", "Manna", "Purim", "Nativity", "Crucifixion", "Resurrection", "Ascension", "Genesis", "Deuteronomy", "Proverbs", "Daniel", "Hosea", "Amos", "Haggai", "Numbers", "Joshua", "Philippians", "Obadiah", "Psalms", "Jonah", "Philemon", "Joel", "Ecclesiastes", "Malachi", "Judges", "Hebrews", "Matthew", "Ezekiel", "Ruth", "Luke", "Leviticus", "Revelation", "Antioch", "Seleucia", "Salamis", "Paphos", "Perga", "Iconium", "Lystra", "Derbe", "Attalia", "Cilicia", "Phrygia", "Galatia", "Mysia", "Troas", "Neapolis", "Philippi", "Amphipolis", "Apollonia", "Thessalonica", "Berea", "Athens", "Corinth"] 
+    };
+
+    const sp_13_15 = { 
+        gen: ["Expedition", "Architecture", "Metropolis", "Heritage", "Itinerary", "Kilimanjaro", "Cosmopolitan", "Topography", "Pilgrimage", "Picturesque", "Endurance", "Metabolism", "Calisthenics", "Championship", "Cardiovascular", "Hamstring", "Quarterback", "Flexibility", "Biomechanics", "Photosynthesis", "Thermodynamics", "Acceleration", "Mitochondria", "Coefficient", "Chromatography", "Hypothesis", "Equilibrium", "Logarithm", "Fluorescence", "Stationary", "Adverse", "Compliment", "Principle", "Discreet", "Council", "Sensor", "Illicit", "Aisle", "Descent", "Shakespeare", "Frankenstein", "Herculean", "Protagonist", "Soliloquy", "Foreshadowing", "Antagonist", "Aslan", "Labyrinth", "Pandora", "Nectar", "Phoenix", "Poseidon", "Chimera", "Odyssey", "Olympian"], 
+        bib: ["Shechem", "Bethel", "Hebron", "Beersheba", "Gomorrah", "Succoth", "Pi-hahiroth", "Rephidim", "Midian", "Kadesh", "Bashan", "Heshbon", "Gilead", "Jordan", "Solomon", "Rehoboam", "Jehoshaphat", "Jehoram", "Ahaziah", "Athaliah", "Amaziah", "Hezekiah", "Manasseh", "Jehoahaz", "Jehoiakim", "Jehoiachin", "Zedekiah", "Jeroboam", "Jehoash", "Zechariah", "Shallum", "Menahem", "Pekahiah", "Melchizedek", "Abimelech", "Chedorlaomer", "Amraphel", "Benhadad", "Tiglathpileser", "Shalmaneser", "Sennacherib", "Esarhaddon", "Nebuchadnezzar", "Belshazzar", "Artaxerxes", "Xerxes", "Isaiah", "Jeremiah", "Ezekiel", "Daniel", "Hosea", "Obadiah", "Nahum", "Habakkuk", "Zephaniah", "Haggai", "Malachi", "Abraham", "Aaron", "Nathan", "Elijah", "Elisha", "Micaiah", "Iddo", "Shemaiah", "Azariah", "Hanani", "Jehu", "Jahaziel", "Oded", "Miriam", "Deborah", "Anna", "Huldah", "Noadiah", "Peter", "Andrew", "James", "John", "Philip", "Bartholomew", "Matthew", "Thomas", "Simon", "Jude", "Judas Iscariot", "Esther", "Jezebel", "Candace", "Vashti"] 
+    };
+
+    const sp_16_19 = { 
+        gen: ["Containerization", "Multithreading", "Cryptography", "Neural Network", "Interoperability", "Virtualization", "Microcontroller", "Cybersecurity", "Back-end Developer", "Recursion", "Complementary", "Affect", "Indict", "Discreet", "Loathe", "Elicit", "Wrest", "Canvass", "Cession", "Emend", "Byronic", "Panglossian", "Lilliputian", "Malapropism", "Faustian", "Bildungsroman", "Orwellian", "Verisimilitude", "Promethean", "Sisyphean", "Hermetic", "Labyrinthine", "Bacchanalian", "Narcissistic", "Chimerical", "Apollonian", "Mnemonics", "Counterintelligence", "Whistleblower", "Masterpiece", "Troubleshooting", "Nomenclature", "Lightheartedness", "Weatherproofing", "Grandmaster", "Standardization", "Straightforward", "Antiestablishment", "Transcontinental", "Deconstruction", "Institutionalize", "Microanalysis", "Postmodernism", "Rejuvenation", "Hypersensitivity", "Disenchantment", "Interconnectedness"], 
+        bib: ["Shechem", "Bethel", "Hebron", "Beersheba", "Gomorrah", "Succoth", "Pi-hahiroth", "Rephidim", "Midian", "Kadesh", "Bashan", "Heshbon", "Gilead", "Jordan", "Solomon", "Rehoboam", "Jehoshaphat", "Jehoram", "Ahaziah", "Athaliah", "Amaziah", "Hezekiah", "Manasseh", "Jehoahaz", "Jehoiakim", "Jehoiachin", "Zedekiah", "Jeroboam", "Jehoash", "Zechariah", "Shallum", "Menahem", "Pekahiah", "Melchizedek", "Abimelech", "Chedorlaomer", "Amraphel", "Benhadad", "Tiglathpileser", "Shalmaneser", "Sennacherib", "Esarhaddon", "Nebuchadnezzar", "Belshazzar", "Artaxerxes", "Xerxes", "Creation", "Exodus", "Passover", "Pentecost", "Trumpets", "Atonement", "Tabernacles", "Manna", "Purim", "Nativity", "Transfiguration", "Crucifixion", "Resurrection", "Ascension", "Isaiah", "Jeremiah", "Ezekiel", "Hosea", "Obadiah", "Nahum", "Habakkuk", "Zephaniah", "Haggai", "Malachi", "Abraham", "Aaron", "Nathan", "Elijah", "Elisha", "Micaiah", "Iddo", "Shemaiah", "Azariah", "Hanani", "Jehu", "Jahaziel", "Oded", "Miriam", "Deborah", "Huldah", "Noadiah", "Sarah", "Hagar", "Rebekah", "Leah", "Rachel", "Dinah", "Tamar", "Asenath", "Zipporah", "Rahab", "Jael", "Orpah", "Hannah", "Peninnah", "Abigail", "Michal", "Bathsheba", "Keturah", "Jezebel", "Vashti", "Judith", "Susanna", "Martha", "Salome", "Joanna", "Claudia", "Phoebe", "Priscilla", "Lydia", "Lois", "Sapphira", "Peter", "Andrew", "James", "John", "Philip", "Bartholomew", "Matthew", "Thomas", "Simon", "Jude", "Judas Iscariot", "Pishon", "Gihon", "Tigris", "Euphrates", "Nile"] 
+    };
+
+    const mcqs = {
+        "9-12": [
+            { cat: 'Memory verse', q: "What does the memory verse 2 Corinthians 5:17 teach about a person who is in Christ?", opts: ["They remain the same but try to improve gradually", "They become a new creature and old things pass away", "They lose their identity completely", "They must follow the law to be accepted"], ans: "B" },
+            { cat: 'Memory verse', q: "According to Psalm 95:6 what is worship?", opts: ["Singing loudly in church only", "Bowing down and kneeling before the Lord our Maker", "Giving money during service", "Listening quietly to sermons"], ans: "B" },
+            { cat: 'Memory verse', q: "According to Matthew 6:9 how are we to address God the Father in worship?", opts: ["Our King in heaven", "Our Father which art in heaven", "Almighty Judge on earth", "Holy Spirit above"], ans: "B" },
+            { cat: 'Memory verse', q: "According to Hebrews 1:6 what does God command concerning worship of the Son?", opts: ["Only prophets should worship Him", "Let all the angels of God worship Him", "Only kings should worship Him", "Worship is not necessary for the Son"], ans: "B" },
+            { cat: 'Memory verse', q: "According to John 4:24, how should we worship God?", opts: ["In loud singing only", "In spirit and in truth", "In the temple alone", "With sacrifices only"], ans: "B" },
+            { cat: 'Memory verse', q: "According to John 4:23, who are the true worshippers?", opts: ["Those who worship in the temple only", "Those who worship the Father in spirit and in truth", "Those who give offerings regularly", "Those who pray loudly in public"], ans: "B" },
+            { cat: 'Memory verse', q: "According to Mark 12:30 how should we love God as an act of worship?", opts: ["With part of our heart and strength", "With our heart only", "With all our heart, soul, mind, and strength", "With our actions alone"], ans: "C" },
+            { cat: 'Memory verse', q: "According to 1 Thessalonians 5:17 what instruction is given about prayer?", opts: ["Pray only on Sundays", "Pray without ceasing", "Pray only in the morning", "Pray when there is trouble only"], ans: "B" },
+            { cat: 'Memory verse', q: "Hebrews 4:12: For the word of God is _, and powerful...\"", opts: ["slow", "quick", "weak", "silent"], ans: "B" },
+            { cat: 'Memory verse', q: "According to 2 Corinthians 5:7, we walk by _.", opts: ["sight", "feelings", "faith", "wisdom"], ans: "C" },
+            { cat: 'Memory verse', q: "According to lesson 14, songs as a weapon of worship, the memory verse is from:", opts: ["Psalm 95:1", "James 2:4", "Job 3:17", "Esther 2:1"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Proverbs 12:22, what does God hate?", opts: ["Praying lips", "Lying lips", "Singing lips", "Quiet lips"], ans: "B" },
+            { cat: 'Memory verse', q: "According to 1 John 1:9, what should we do with our sins?", opts: ["Hide them", "Confess them", "Ignore them", "Repeat them"], ans: "B" },
+            { cat: 'Memory verse', q: "According to Colossians 3:13, we should _ one another.", opts: ["hate", "forbear", "fight", "ignore"], ans: "B" },
+            { cat: 'Memory verse', q: "The main lesson from lesson 18 memory verse is about _.", opts: ["sportsmanship", "holiness and obedience", "farming", "travel"], ans: "B" },
+            { cat: 'Memory verse', q: "According to 1 Peter 1:8, believers love Jesus even though they have not _ Him.", opts: ["heard", "seen", "touched", "followed"], ans: "B" },
+            { cat: 'Memory verse', q: "According to Philippians 4:6, we should be careful for _.", opts: ["everything", "nothing", "something", "many things"], ans: "B" },
+            { cat: 'Memory verse', q: "According to Romans 7:18, where does no good thing dwell?", opts: ["In the spirit", "In the flesh", "In the heart of God", "In angels"], ans: "B" },
+            { cat: 'Memory verse', q: "What was in man’s heart according to Genesis 6:5?", opts: ["Good thoughts", "Evil thoughts", "No thoughts", "Wise thoughts"], ans: "B" },
+            { cat: 'Memory verse', q: "According to 1 Corinthians 6:18, what are believers instructed to do?", opts: ["tolerate fornication", "flee fornication", "ignore sin", "accept temptation"], ans: "B" },
+            { cat: 'Memory verse', q: "Lesson 27 memory verse tells believers to do what with the gift they have received?", opts: ["hide it", "sell it", "minister it to others", "forget it"], ans: "C" },
+            { cat: 'Memory verse', q: "The memory verse of lesson 28 teaches that association affects a person’s _.", opts: ["height", "wisdom", "clothing", "age"], ans: "B" },
+            { cat: 'Memory verse', q: "According to lesson 29 memory verse, God loves a _ giver.", opts: ["sad", "cheerful", "reluctant", "selfish"], ans: "B" },
+            { cat: 'Memory verse', q: "According to 1 Peter 2:17, we should honour _.", opts: ["only kings", "all men", "only friends", "only elders"], ans: "B" },
+            { cat: 'Memory verse', q: "Lesson 31 memory verse teaches about _ devotion.", opts: ["personal wealth", "family devotion", "farming", "war"], ans: "B" },
+            { cat: 'Memory verse', q: "According to the memory verse of lesson 33, charity shall cover a multitude of _.", opts: ["gifts", "sins", "blessings", "words"], ans: "B" },
+            { cat: 'Memory verse', q: "According to lesson 34 memory verse Matthew 28:19, what are believers commanded to do?", opts: ["Sleep", "Go and teach all nations", "Hide", "Fight"], ans: "B" },
+            { cat: 'Memory verse', q: "According to the memory verse of lesson 35 God expects stewards to be _.", opts: ["dishonest", "faithful", "proud", "confused"], ans: "B" },
+            { cat: 'Memory verse', q: "According to Matthew 28:19, what are believers commanded to do?", opts: ["Sleep", "Go and teach all nations", "Fight enemies", "Build houses"], ans: "B" },
+            { cat: 'Memory verse', q: "According to Ecclesiastes 11:1, what should we cast upon the waters?", opts: ["stones", "bread", "money", "wood"], ans: "B" },
+            { cat: 'Memory verse', q: "According to Hosea 4:6, God’s people are destroyed for lack of _.", opts: ["money", "knowledge", "food", "strength"], ans: "B" },
+            { cat: 'Memory verse', q: "The memory verse Philippians 4:5 encourages believers to live in a way that shows _.", opts: ["confusion", "moderation", "anger", "fear"], ans: "B" },
+            { cat: 'Memory verse', q: "According to 1 Thessalonians 5:21, what should believers do with all things?", opts: ["Ignore them", "Prove them", "Accept them blindly", "Reject them all"], ans: "B" },
+            { cat: 'Memory verse', q: "According to the memory verse of Gluttony what is the result of drunkenness and gluttony?", opts: ["success", "poverty", "promotion", "wisdom"], ans: "B" },
+            { cat: 'Memory verse', q: "The main lesson of the memory verse of Hard time is that Jesus is the source of _.", opts: ["wealth", "life", "food only", "struggle"], ans: "B" },
+            { cat: 'Memory verse', q: "According to Romans 13:1, every soul should be subject to _.", opts: ["friends", "higher powers", "enemies", "money"], ans: "B" },
+            { cat: 'Memory verse', q: "According to Proverbs 29:2, what happens when the righteous are in authority?", opts: ["The people mourn", "The people rejoice", "The people fight", "The people suffer"], ans: "B" },
+            { cat: 'Memory verse', q: "According to James 1:22, we should be _ of the word.", opts: ["hearers only", "doers", "forgetful", "doubters"], ans: "B" },
+            { cat: 'Memory verse', q: "In whose name should believers be baptized according to the memory verse lesson 47?", opts: ["Moses", "Jesus Christ", "Abraham", "David"], ans: "B" },
+            { cat: 'Memory verse', q: "According to the memory verse of Holy Communion life comes through _ in Christ.", opts: ["eating and drinking physically", "believing and partaking spiritually", "sleeping", "working"], ans: "B" },
+            { cat: 'Memory verse', q: "According to 1 Thessalonians 4:17, who will be caught up together?", opts: ["Angels only", "The dead only", "The living and the dead in Christ", "Only kings"], ans: "C" },
+            { cat: 'Memory verse', q: "According to 1 Peter 5:4, who is the chief Shepherd?", opts: ["Moses", "Jesus Christ", "David", "Paul"], ans: "B" },
+            { cat: 'Bible', q: "Which book is the very first book of the Bible?", opts: ["Exodus", "Genesis", "Job", "Matthew"], ans: "B" },
+            { cat: 'Bible', q: "Which book immediately follows the first five books?", opts: ["Judges", "Ruth", "Joshua", "1 Samuel"], ans: "C" },
+            { cat: 'Bible', q: "What is the spelling for the shortest book in the Old Testament?", opts: ["Obadia", "Obidiah", "Obadiah", "Obadaih"], ans: "C" },
+            { cat: 'Bible', q: "Which book is placed between Ezra and Esther?", opts: ["Nehemiah", "Job", "Daniel", "Malachi"], ans: "A" },
+            { cat: 'Bible', q: "Identify the correct spelling of the book that follows Lamentations:", opts: ["Ezekial", "Ezekiel", "Ezekil", "Esekiel"], ans: "B" },
+            { cat: 'Bible', q: "Which book comes immediately after the four Gospels?", opts: ["Romans", "Hebrews", "Acts", "Revelation"], ans: "C" },
+            { cat: 'Bible', q: "How many books in the Bible start with the number '1' (e.g., 1 Samuel)?", opts: ["6", "7", "8", "9"], ans: "C" },
+            { cat: 'Bible', q: "What is the correct spelling for the book following Ephesians?", opts: ["Philipians", "Phillippians", "Philippans", "Philippians"], ans: "D" },
+            { cat: 'Bible', q: "Which book is found between Colossians and 2 Thessalonians?", opts: ["1 Thessalonians", "Philippians", "1 Timothy", "Titus"], ans: "A" },
+            { cat: 'Bible', q: "What is the correct spelling of the book after 2 Timothy?", opts: ["Tittus", "Tytus", "Titus", "Titas"], ans: "C" },
+            { cat: 'Bible', q: "Which book is placed after Philemon and before James?", opts: ["Jude", "1 Peter", "Hebrews", "Galatians"], ans: "C" },
+            { cat: 'Bible', q: "Identify the correct spelling for the book of 150 sacred songs:", opts: ["Psalm", "Psalmes", "Salms", "Psalms"], ans: "D" },
+            { cat: 'Bible', q: "Which of these is the final book of the Old Testament?", opts: ["Malachy", "Micah", "Malachi", "Matthew"], ans: "C" },
+            { cat: 'Bible', q: "Which New Testament title is plural but often called singular?", opts: ["James", "Acts", "Revelation", "Hebrews"], ans: "B" },
+            { cat: 'Bible', q: "How is the third Gospel writer's name spelled in the Bible?", opts: ["Luc", "Lukas", "Luke", "Lucius"], ans: "C" },
+            { cat: 'Bible', q: "Which book comes before Galatians and after 2 Corinthians?", opts: ["Ephesians", "Romans", "Galatians", "Philippians"], ans: "C" },
+            { cat: 'Bible', q: "Identify the correct spelling of the second book of the Bible:", opts: ["Exodous", "Exadus", "Exodus", "Exidus"], ans: "C" },
+            { cat: 'Bible', q: "Which of these books has a title that is exactly 4 letters long?", opts: ["Ruth", "Mark", "Ezra", "All of the above"], ans: "D" },
+            { cat: 'Bible', q: "What is the correct spelling of the first Gospel?", opts: ["Mathew", "Matthew", "Mathhew", "Matthiew"], ans: "B" },
+            { cat: 'Bible', q: "Which book follows 1 Chronicles?", opts: ["Ezra", "Nehemiah", "2 Chronicles", "2 Kings"], ans: "C" },
+            { cat: 'Bible', q: "Identify the correct spelling for the book of wise sayings:", opts: ["Proverbes", "Provurbs", "Proverbe", "Proverbs"], ans: "D" },
+            { cat: 'Bible', q: "Which book is between Ecclesiastes and Isaiah?", opts: ["Psalms", "Song of Solomon", "Proverbs", "Lamentations"], ans: "B" },
+            { cat: 'Bible', q: "In the New Testament, which book follows Romans?", opts: ["Acts", "Galatians", "1 Corinthians", "2 Corinthians"], ans: "C" },
+            { cat: 'Bible', q: "How is the book about the first return from Babylon spelled?", opts: ["Esra", "Ezrah", "Ezra", "Esdras"], ans: "C" },
+            { cat: 'Bible', q: "Which book title is the longest in the Bible?", opts: ["Ecclesiastes", "Song of Solomon", "Lamentations", "Deuteronomy"], ans: "B" },
+            { cat: 'Bible', q: "Identify the correct spelling of the 4th book of the Bible:", opts: ["Number", "Nummbers", "Numbres", "Numbers"], ans: "D" },
+            { cat: 'Bible', q: "Which book follows Philemon?", opts: ["Titus", "James", "Hebrews", "1 Peter"], ans: "C" },
+            { cat: 'Bible', q: "What is the correct spelling of the book after 1 Kings?", opts: ["1 Chronicles", "2 Kings", "2 Chronicles", "2 Kinges"], ans: "B" },
+            { cat: 'Bible', q: "Which book is the very last one in the Bible?", opts: ["Revelations", "Revelation", "Jude", "Malachi"], ans: "B" },
+            { cat: 'Bible', q: "Identify the correct spelling of the prophet in the lions' den:", opts: ["Danyel", "Danial", "Danielle", "Daniel"], ans: "D" },
+            { cat: 'Bible', q: "Which of these is the correct spelling for the book following Proverbs?", opts: ["Eclesiastes", "Ecclesiastes", "Ecclesiastees", "Ecclessiastes"], ans: "B" },
+            { cat: 'Zeal', q: "New birth is also known as?", opts: ["Water baptism", "being born again", "growing up", "Church attendance"], ans: "B" },
+            { cat: 'Zeal', q: "According to John 3:3 without new birth, a person cannot ?", opts: ["Pray", "See the kingdom of God", "Go to school", "help others"], ans: "B" },
+            { cat: 'Zeal', q: "Worship is showing _ and _ to God", opts: ["Sleeping", "Love and respect", "Singing", "Prayer"], ans: "B" },
+            { cat: 'Zeal', q: "_ draws us close to God", opts: ["Fighting", "Dancing", "Worship", "Grace"], ans: "C" },
+            { cat: 'Zeal', q: "God the Father is the _", opts: ["King of one nation", "Creator of all things", "Teacher of a school", "Leader of a group"], ans: "B" },
+            { cat: 'Zeal', q: "Worship should come from the _", opts: ["Mouth", "Heart", "Hands", "Eyes"], ans: "B" },
+            { cat: 'Zeal', q: "We worship Jesus because He_", opts: ["Taught in the temple", "Died and rose again to save us", "Traveled a lot", "Was a carpenter"], ans: "B" },
+            { cat: 'Zeal', q: "One way to worship Jesus is by _", opts: ["Disobeying", "Praying and praising Him", "telling lies", "Laughing"], ans: "B" },
+            { cat: 'Zeal', q: "According to John 14:26 the Holy Spirit is our _", opts: ["Enemy", "Comforter", "Servant", "Giver"], ans: "B" },
+            { cat: 'Zeal', q: "One way to worship the Holy spirit is by _", opts: ["Ignoring Him", "Listening and obeying Him", "Doing bad things", "Running away"], ans: "B" },
+            { cat: 'Zeal', q: "A true worshipper is someone who _", opts: ["Pretends to love God", "Worship God sincerely", "Only sings songs", "goes to Church sometimes"], ans: "B" },
+            { cat: 'Zeal', q: "True worship comes from the _", opts: ["Mouth", "Heart", "Hands", "Eyes"], ans: "B" },
+            { cat: 'Zeal', q: "Worship is a lifestyle of loving, serving God with _", opts: ["Singing", "Our whole life", "Dancing", "Laughing"], ans: "B" },
+            { cat: 'Zeal', q: "_ is a way to worship God with our whole life", opts: ["Playing", "Prayer and Bible study", "Praising", "Truth"], ans: "B" },
+            { cat: 'Zeal', q: "Prayer is a weapon of worship because it _", opts: ["Help us to fight people", "Connect us to God", "Makes us sleep", "Is only for adults"], ans: "B" },
+            { cat: 'Zeal', q: "Which of these is a type of prayer", opts: ["Thanksgiving", "Fighting", "Dancing", "Reading"], ans: "A" },
+            { cat: 'Zeal', q: "One way to use the word of God in worship is by _", opts: ["Sleeping", "Reading it", "Ignoring it", "Singing"], ans: "B" },
+            { cat: 'Zeal', q: "The bible says we walk by _", opts: ["Sight", "fear", "Faith", "Money"], ans: "C" },
+            { cat: 'Zeal', q: "Faith is a weapon of worship because it help us to _", opts: ["Fight physical enemies", "Trust in God in all situations", "Avoid school work", "Win games"], ans: "B" },
+            { cat: 'Zeal', q: "Songs of worship help believers to _", opts: ["Forget God", "Draw closer to God", "Argue", "Fight friends"], ans: "B" },
+            { cat: 'Zeal', q: "Who is the greatest example of a worshiper in songs in the Bible", opts: ["Moses", "David", "Jonah", "Cain"], ans: "B" },
+            { cat: 'Zeal', q: "Vain worship means _", opts: ["Worship that pleases God", "Worship that is not sincere", "Singing", "Praying"], ans: "B" },
+            { cat: 'Zeal', q: "Which of these can make worship vain", opts: ["Truth", "Lies", "Prayer", "Praise"], ans: "B" },
+            { cat: 'Zeal', q: "True repentance involves _", opts: ["Continuing in sin", "Saying sorry and turning away from sin", "Ignoring God", "Fighting others"], ans: "B" },
+            { cat: 'Zeal', q: "Forgiveness is_", opts: ["Keeping anger in your heart", "Letting go of hurt and not paying back evil", "Fighting someone", "Ignoring people forever"], ans: "B" },
+            { cat: 'Zeal', q: "Who teaches us to forgive", opts: ["Our friends", "Teachers", "God", "Strangers"], ans: "C" },
+            { cat: 'Zeal', q: "The Bible teaches us that the body is the temple of God", opts: ["True", "False"], ans: "A" },
+            { cat: 'Zeal', q: "Which book of the Bible mentions same sex relationship as sin", opts: ["Psalms", "Romans", "Proverbs", "Acts"], ans: "B" },
+            { cat: 'Zeal', q: "Unspeakable joy means", opts: ["Joy you cannot explain fully", "Temporary happiness", "Sadness", "Loud laughter"], ans: "A" },
+            { cat: 'Zeal', q: "Which book of the Bible mentions 'joy unspeakable'?", opts: ["Genesis", "Matthew", "1 Peter", "Revelation"], ans: "C" },
+            { cat: 'Zeal', q: "Worship is vital for peace and growth", opts: ["True", "False"], ans: "A" },
+            { cat: 'Zeal', q: "In Philippians 4:7, the peace of God does what ?", opts: ["Makes us sleep", "Guards our hearts and minds", "Makes us rich"], ans: "B" },
+            { cat: 'Zeal', q: "Drug abuse can affect a person's", opts: ["Heart only", "Behaviour only", "Health and behaviour", "Nothing"], ans: "C" },
+            { cat: 'Zeal', q: "Which of these is commonly abused ?", opts: ["Fruits", "Water", "Hard drugs", "Vegetables"], ans: "C" },
+            { cat: 'Zeal', q: "Gender identity refers to", opts: ["What we eat", "How a person feel about their gender", "where someone lives"], ans: "B" },
+            { cat: 'Zeal', q: "Transgenderism is contrary to God's design for man", opts: ["True", "False"], ans: "A" },
+            { cat: 'Zeal', q: "Sexual morality in the Bible refers to", opts: ["How to dress fashionably", "God's rules about sexual behaviour and purity", "Cooking rules", "Business rules"], ans: "B" },
+            { cat: 'Zeal', q: "Which book says 'flee from sexual immorality'?", opts: ["Genesis", "1 Corinthians", "Exodus", "Isaiah"], ans: "B" },
+            { cat: 'Zeal', q: "Service to others means", opts: ["Ignoring people", "Helping and caring for people", "Competing with others"], ans: "B" },
+            { cat: 'Zeal', q: "Which book of the Bible says Jesus came to serve ?", opts: ["Mark", "Genesis", "Psalms", "Exodus"], ans: "A" },
+            { cat: 'Zeal', q: "Godly association means", opts: ["Keeping bad friends", "Associating with people who have good character and fear of God", "Staying alone always", "Following the crowd"], ans: "B" },
+            { cat: 'Zeal', q: "The Bible teaches that bad Company", opts: ["Builds good character", "Has no effect", "Corrupts good character", "Makes people rich"], ans: "C" },
+            { cat: 'Zeal', q: "The Bible teaches that we should give", opts: ["Sadly", "Cheerfully", "Angrily", "Carelessly"], ans: "B" },
+            { cat: 'Zeal', q: "One reason for giving is to", opts: ["Show off", "Help others in need", "Compete with others"], ans: "B" },
+            { cat: 'Zeal', q: "Honour means", opts: ["Disrespecting others", "Showing respect and value to others", "Ignoring people", "Fighting others"], ans: "B" },
+            { cat: 'Zeal', q: "The Bible teaches us to honour our _", opts: ["Friends only", "Parents", "Enemies only", "Neighbours only"], ans: "B" },
+            { cat: 'Zeal', q: "Family devotion means", opts: ["Watching tv together", "A time when the family prays, studies the Bible and worships God together", "Eating together only", "Playing games only"], ans: "B" },
+            { cat: 'Zeal', q: "Family devotion should be done", opts: ["Once a year", "Regularly", "Never", "Only on holidays"], ans: "B" },
+            { cat: 'Zeal', q: "Love means", opts: ["Hating others", "Showing care, kindness and concern", "Ignoring people", "Only on holidays"], ans: "B" },
+            { cat: 'Zeal', q: "The Bible teaches that the greatest commandment is _", opts: ["Work hard", "Love God and move others", "Sleep well", "Travel"], ans: "B" },
+            { cat: 'Zeal', q: "Witnessing means", opts: ["Keeping quiet about your faith", "Sharing the message of Jesus with others", "Arguing with people", "Ignoring others"], ans: "B" },
+            { cat: 'Zeal', q: "Follow up means", opts: ["Forgetting new believers", "Encouraging and helping new believers grow", "Avoiding people", "Only greeting people"], ans: "B" },
+            { cat: 'Zeal', q: "One good financial habit is", opts: ["Saving money", "Spending everything", "Borrowing unnecessarily", "Gambling"], ans: "A" },
+            { cat: 'Zeal', q: "Children can be financially prudent by", opts: ["Spend without thinking", "Budget their money", "Ignore savings", "Waste resources"], ans: "B" },
+            { cat: 'Zeal', q: "Why is knowledge important ?", opts: ["It makes life confusing", "It helps us make wise decisions", "It causes problems", "It wastes time"], ans: "B" },
+            { cat: 'Zeal', q: "Which book of the Bible says 'my people are destroyed for lack for knowledge'?", opts: ["Genesis", "Hosea", "Exodus", "Matthew"], ans: "B" },
+            { cat: 'Zeal', q: "In the Bible, modesty is encouraged in", opts: ["Talking alone", "Dressing alone", "Both behaviour and dressing", "None"], ans: "C" },
+            { cat: 'Zeal', q: "What is Modesty ?", opts: ["Being proud", "Being humble and not showing off", "Being angry", "Being loud"], ans: "B" },
+            { cat: 'Zeal', q: "Social Media is used to", opts: ["Cook food", "Communicate and share information", "Wash clothes", "Drive cars"], ans: "B" },
+            { cat: 'Zeal', q: "Which of these is a social media platform?", opts: ["book", "Blackboard", "Facebook", "Pencil"], ans: "C" },
+            { cat: 'Zeal', q: "Gluttony can lead to _", opts: ["Good health", "Sickness", "Strength", "Happiness"], ans: "B" },
+            { cat: 'Zeal', q: "Gluttony means", opts: ["Eating too much food", "Sharing food with others", "Praying before eating", "Cooking food"], ans: "A" },
+            { cat: 'Zeal', q: "Which of these can cause hard times ?", opts: ["Good health", "Lack of money", "Joy", "Success"], ans: "B" },
+            { cat: 'Zeal', q: "During hard times, we should", opts: ["Give up", "Stay strong and keep trying", "Run away", "Blame others"], ans: "B" },
+            { cat: 'Zeal', q: "Laws are made to", opts: ["Punish only", "Guide and protect people", "Make it harder", "Stop people from having fun"], ans: "B" },
+            { cat: 'Zeal', q: "Why is it important to obey laws ?", opts: ["To avoid learning", "To create peace and order", "To cause trouble", "To waste time"], ans: "B" },
+            { cat: 'Zeal', q: "Good governance helps us to", opts: ["Create problems", "Bring peace and development", "Cause confusion", "Waste resources"], ans: "B" },
+            { cat: 'Zeal', q: "A good leader should be", opts: ["Corrupt", "Honest and fair", "Selfish", "Lazy"], ans: "B" },
+            { cat: 'Zeal', q: "Double standards often lead to:", opts: ["Fairness", "Trust", "Confusion and injustice", "Unity"], ans: "C" },
+            { cat: 'Zeal', q: "What is a double standard?", opts: ["Treating everyone equally", "Applying different rules to different people", "Ignoring rules completely", "Being honest always"], ans: "B" },
+            { cat: 'Zeal', q: "Water baptism symbolizes:", opts: ["Wealth", "Death, burial, and resurrection with Christ", "Power", "Wisdom"], ans: "B" },
+            { cat: 'Zeal', q: "Water baptism and Spirit baptism are:", opts: ["The same thing", "Different but both important", "Not necessary", "Only for pastors"], ans: "B" },
+            { cat: 'Zeal', q: "The bread in Communion represents:", opts: ["Wealth", "The body of Christ", "The church building", "Strength"], ans: "B" },
+            { cat: 'Zeal', q: "Who should take Holy Communion?", opts: ["Only pastors", "Only children", "Believers in Christ", "Everyone without preparation"], ans: "C" },
+            { cat: 'Zeal', q: "Before taking Communion, a believer should:", opts: ["Eat plenty of food", "Examine themselves", "Sleep", "Leave church"], ans: "B" },
+            { cat: 'Zeal', q: "Who will be taken in the rapture?", opts: ["Everyone in the world", "Only pastors", "Believers in Christ", "Only children"], ans: "C" },
+            { cat: 'Zeal', q: "After the rapture, believers will:", opts: ["Return home", "Meet the Lord in the air", "Stay on earth", "Sleep again"], ans: "B" },
+            { cat: 'Zeal', q: "What is the “Crown of Glory”?", opts: ["A physical crown made of gold", "A reward given by God to faithful believers", "A king’s ornament", "A church decoration"], ans: "B" },
+            { cat: 'Zeal', q: "What quality is needed to receive the Crown of Glory?", opts: ["Wealth", "Fame", "Faithfulness in serving God", "Strength"], ans: "C" },
+        ],
+        "13-15": [
+            { cat: 'Memory Verse', q: "What does the memory verse 2 Corinthians 5:17 teach about a person who is in Christ?", opts: ["They remain the same but try to improve gradually", "They become a new creature and old things pass away", "They lose their identity completely", "They must follow the law to be accepted"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to Psalm 95:6 what is worship?", opts: ["Singing loudly in church only", "Bowing down and kneeling before the Lord our Maker", "Giving money during service", "Listening quietly to sermons"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to Matthew 6:9 how are we to address God the Father in worship?", opts: ["Our King in heaven", "Our Father which art in heaven", "Almighty Judge on earth", "Holy Spirit above"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to Hebrews 1:6 what does God command concerning worship of the Son?", opts: ["Only prophets should worship Him", "Let all the angels of God worship Him", "Only kings should worship Him", "Worship is not necessary for the Son"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to John 4:24, how should we worship God?", opts: ["In loud singing only", "In spirit and in truth", "In the temple alone", "With sacrifices only"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to John 4:23, who are the true worshippers?", opts: ["Those who worship in the temple only", "Those who worship the Father in spirit and in truth", "Those who give offerings regularly", "Those who pray loudly in public"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to Mark 12:30 how should we love God as an act of worship?", opts: ["With part of our heart and strength", "With our heart only", "With all our heart, soul, mind, and strength", "With our actions alone"], ans: "C" },
+            { cat: 'Memory Verse', q: "According to 1 Thessalonians 5:17 what instruction is given about prayer?", opts: ["Pray only on Sundays", "Pray without ceasing", "Pray only in the morning", "Pray when there is trouble only"], ans: "B" },
+            { cat: 'Memory Verse', q: "Hebrews 4:12: For the word of God is _, and powerful...\"", opts: ["slow", "quick", "weak", "silent"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to 2 Corinthians 5:7, we walk by _.", opts: ["sight", "feelings", "faith", "wisdom"], ans: "C" },
+            { cat: 'Memory Verse', q: "According to lesson 14, songs as a weapon of worship, the memory verse is from:", opts: ["Psalm 95:1", "James 2:4", "Job 3:17", "Esther 2:1"], ans: "A" },
+            { cat: 'Memory Verse', q: "According to Proverbs 12:22, what does God hate?", opts: ["Praying lips", "Lying lips", "Singing lips", "Quiet lips"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to 1 John 1:9, what should we do with our sins?", opts: ["Hide them", "Confess them", "Ignore them", "Repeat them"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to Colossians 3:13, we should _ one another.", opts: ["hate", "forbear", "fight", "ignore"], ans: "B" },
+            { cat: 'Memory Verse', q: "The main lesson from lesson 18 memory verse is about _.", opts: ["sportsmanship", "holiness and obedience", "farming", "travel"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to 1 Peter 1:8, believers love Jesus even though they have not _ Him.", opts: ["heard", "seen", "touched", "followed"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to Philippians 4:6, we should be careful for _.", opts: ["everything", "nothing", "something", "many things"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to Romans 7:18, where does no good thing dwell?", opts: ["In the spirit", "In the flesh", "In the heart of God", "In angels"], ans: "B" },
+            { cat: 'Memory Verse', q: "What was in man’s heart according to Genesis 6:5?", opts: ["Good thoughts", "Evil thoughts", "No thoughts", "Wise thoughts"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to 1 Corinthians 6:18, what are believers instructed to do?", opts: ["tolerate fornication", "flee fornication", "ignore sin", "accept temptation"], ans: "B" },
+            { cat: 'Memory Verse', q: "Lesson 27 memory verse tells believers to do what with the gift they have received?", opts: ["hide it", "sell it", "minister it to others", "forget it"], ans: "C" },
+            { cat: 'Memory Verse', q: "The memory verse of lesson 28 teaches that association affects a person’s _.", opts: ["height", "wisdom", "clothing", "age"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to lesson 29 memory verse, God loves a _ giver.", opts: ["sad", "cheerful", "reluctant", "selfish"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to 1 Peter 2:17, we should honour _.", opts: ["only kings", "all men", "only friends", "only elders"], ans: "B" },
+            { cat: 'Memory Verse', q: "Lesson 31 memory verse teaches about _ devotion.", opts: ["personal wealth", "family devotion", "farming", "war"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to the memory verse of lesson 33, charity shall cover a multitude of _.", opts: ["gifts", "sins", "blessings", "words"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to lesson 34 memory verse Matthew 28:19, what are believers commanded to do?", opts: ["Sleep", "Go and teach all nations", "Hide", "Fight"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to the memory verse of lesson 35 God expects stewards to be _.", opts: ["dishonest", "faithful", "proud", "confused"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to Matthew 28:19, what are believers commanded to do?", opts: ["Sleep", "Go and teach all nations", "Fight enemies", "Build houses"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to Ecclesiastes 11:1, what should we cast upon the waters?", opts: ["stones", "bread", "money", "wood"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to Hosea 4:6, God’s people are destroyed for lack of _.", opts: ["money", "knowledge", "food", "strength"], ans: "B" },
+            { cat: 'Memory Verse', q: "The memory verse Philippians 4:5 encourages believers to live in a way that shows _.", opts: ["confusion", "moderation", "anger", "fear"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to 1 Thessalonians 5:21, what should believers do with all things?", opts: ["Ignore them", "Prove them", "Accept them blindly", "Reject them all"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to the memory verse of Gluttony what is the result of drunkenness and gluttony?", opts: ["success", "poverty", "promotion", "wisdom"], ans: "B" },
+            { cat: 'Memory Verse', q: "The main lesson of the memory verse of Hard time is that Jesus is the source of _.", opts: ["wealth", "life", "food only", "struggle"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to Romans 13:1, every soul should be subject to _.", opts: ["friends", "higher powers", "enemies", "money"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to Proverbs 29:2, what happens when the righteous are in authority?", opts: ["The people mourn", "The people rejoice", "The people fight", "The people suffer"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to James 1:22, we should be _ of the word.", opts: ["hearers only", "doers", "forgetful", "doubters"], ans: "B" },
+            { cat: 'Memory Verse', q: "In whose name should believers be baptized according to the memory verse lesson 47?", opts: ["Moses", "Jesus Christ", "Abraham", "David"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to the memory verse of Holy Communion life comes through _ in Christ.", opts: ["eating and drinking physically", "believing and partaking spiritually", "sleeping", "working"], ans: "B" },
+            { cat: 'Memory Verse', q: "According to 1 Thessalonians 4:17, who will be caught up together?", opts: ["Angels only", "The dead only", "The living and the dead in Christ", "Only kings"], ans: "C" },
+            { cat: 'Memory Verse', q: "According to 1 Peter 5:4, who is the chief Shepherd?", opts: ["Moses", "Jesus Christ", "David", "Paul"], ans: "B" },
+            { cat: 'Bible', q: "Which of these is the correct spelling for the book following Proverbs?", opts: ["Eclesiastes", "Ecclesiastes", "Ecclesiastees", "Ecclessiastes"], ans: "B" },
+            { cat: 'Bible', q: "Which of these is the correct spelling for the book following Proverbs?", opts: ["Eclesiastes", "Ecclesiastes", "Ecclesiastees", "Ecclessiastes"], ans: "B" },
+            { cat: 'Bible', q: "Which book is the first of the 'Major Prophets'?", opts: ["Jeremiah", "Ezekiel", "Isaiah", "Daniel"], ans: "C" },
+            { cat: 'Bible', q: "Which of these books belongs to the 'Minor Prophets' section?", opts: ["Nehemiah", "Zephaniah", "Jeremiah", "Isaiah"], ans: "B" },
+            { cat: 'Bible', q: "In the Minor Prophets, which book is between Amos and Jonah?", opts: ["Hosea", "Obadiah", "Micah", "Joel"], ans: "B" },
+            { cat: 'Bible', q: "Which book is the third of the Minor Prophets?", opts: ["Amos", "Obadiah", "Hosea", "Jonah"], ans: "A" },
+            { cat: 'Bible', q: "Which Minor Prophet follows Jonah?", opts: ["Micah", "Nahum", "Habakkuk", "Zephaniah"], ans: "A" },
+            { cat: 'Bible', q: "Which book is the fourth and final Gospel?", opts: ["Matthew", "Mark", "Luke", "John"], ans: "D" },
+            { cat: 'Bible', q: "Which of these prophets is categorized as 'Minor'?", opts: ["Joel", "Isaiah", "Ezekiel", "Daniel"], ans: "A" },
+            { cat: 'Zeal', q: "What is the first step in the process of the New Birth in Christ?", opts: ["Justification", "Repentance", "Hearing the Gospel", "Adoption into God's Family"], ans: "C" },
+            { cat: 'Zeal', q: "What is one of the benefits of new birth in Christ?", opts: ["A physical rebirth of the human body", "Power to love and forgive others", "A life free from all earthly challenges", "Automatic knowledge of all Bible verses"], ans: "B" },
+            { cat: 'Zeal', q: "The word 'worship' originates from an Old English term meaning?", opts: ["To sing loudly", "To give worth or honour", "To attend a church service", "To ask for blessings"], ans: "B" },
+            { cat: 'Zeal', q: "Which of the following is considered a form of worship?", opts: ["Reading and meditating", "Physical exercise", "Sleeping and resting", "Traveling to new places"], ans: "A" },
+            { cat: 'Zeal', q: "Worshipping God should be directed by spirit and truth rather than just which of the following?", opts: ["Songs", "Ceremony", "Prayer", "Fellowship"], ans: "B" },
+            { cat: 'Zeal', q: "One of the reasons stated why we should worship God the Father is that He is the source of:", opts: ["Physical wealth", "All good things", "Earthly power", "Scientific knowledge"], ans: "B" },
+            { cat: 'Zeal', q: "Why is Jesus considered the mediator?", opts: ["Because he defeated death and gave eternal life", "Because he is the mediator between God and humanity", "Because he is worthy of worship in heaven and on earth", "Because he is the fourth man in the fire"], ans: "B" },
+            { cat: 'Zeal', q: "One of the ways to worship Jesus, is through?", opts: ["Scientific study and research", "Physical exercise and training", "Acts of love and service", "Traveling to historical sites"], ans: "C" },
+            { cat: 'Zeal', q: "According to 'Who is the Holy Spirit?', which title is used to describe Him?", opts: ["The First person in the Trinity", "The King of Kings", "Our Comforter and Teacher", "The Creator of the sun and moon"], ans: "C" },
+            { cat: 'Zeal', q: "What is the primary role of the Holy Spirit as mentioned in the lesson (John 14:26)?", opts: ["To provide physical strength", "To teach us all things and bring the Word to our remembrance", "To ensure we never face any temptations", "To judge the actions of others"], ans: "B" },
+            { cat: 'Zeal', q: "A person who truly worships God is considered to be which of the following?", opts: ["A seeker of human approval", "A soul winner", "Someone who only worships through songs", "Someone who follows routine rituals"], ans: "B" },
+            { cat: 'Zeal', q: "According to the lesson, what is required for an individual to become a true worshipper?", opts: ["Being a member of a church choir", "Seeking recognition from others", "Being a consecrated vessel", "Providing lip service without heart"], ans: "C" },
+            { cat: 'Zeal', q: "According to John 14:15, what is a primary way to show our love for Jesus?", opts: ["Offering a living sacrifice", "Using our gifts and talents", "Praying without ceasing", "Keeping and obeying His commandments"], ans: "D" },
+            { cat: 'Zeal', q: "What is the result of worshiping God in a way that purges oneself from dishonor (2 Timothy 2:21)?", opts: ["He shall be a friend of God", "He shall be a vessel unto honour, sanctified", "He shall have all his prayers answered instantly", "He shall receive direction and clarity"], ans: "B" },
+            { cat: 'Zeal', q: "Which of the following scriptural references describes prayer as a weapon that can bring victory and peace in times of fear?", opts: ["Philippians 4:6-7", "1 Thessalonians 5:17", "2 Chronicles 20:15-22", "James 5:16"], ans: "C" },
+            { cat: 'Zeal', q: "What does James 4:3 identify as a common barrier to receiving answers to prayer?", opts: ["Lack of physical preparation", "Asking with wrong motives or to consume it upon lusts", "Not praying for long enough", "Praying in a public place"], ans: "B" },
+            { cat: 'Zeal', q: "Which verse supports the idea that the Word of God brings peace and comfort?", opts: ["Romans 1:16", "Isaiah 41:10", "John 14:27", "Proverbs 16:9"], ans: "C" },
+            { cat: 'Zeal', q: "What does the Word of God provide for the believer according to James 4:7?", opts: ["Clarity of thought", "Victory over sin and the devil", "Knowledge of self", "Worldly wisdom"], ans: "B" },
+            { cat: 'Zeal', q: "How does faith specifically serve as a defense in the life of a believer?", opts: ["It provides physical wealth", "It protects the heart and mind from doubt, fear, and the lies of the enemy", "It ensures immediate answers to every request", "It prevents all trials from occurring"], ans: "B" },
+            { cat: 'Zeal', q: "According to the lesson, what increases a person’s level of faith?", opts: ["Avoiding fellow believers", "Leaning on personal understanding", "Constantly reading, hearing, and meditating on the Word of God", "Waiting for results before believing"], ans: "C" },
+            { cat: 'Zeal', q: "According to 1 Timothy 2:5, what makes true worship possible for humanity?", opts: ["Human intellect", "The mediation of Christ and the help of the Holy Spirit", "Singing songs on Sundays", "Our own emotions"], ans: "B" },
+            { cat: 'Zeal', q: "What is one of the benefits of congregational singing mentioned in the text?", opts: ["To memorize the truth", "A balm for the soul", "Unity and mutual encouragement", "To fulfill a daily routine"], ans: "C" },
+            { cat: 'Zeal', q: "What happened to Nadab and Abihu when they offered 'strange fire' before the Lord (Leviticus 10:1-7)?", opts: ["They were praised for their creativity", "They were struck down by fire for their irreverence", "They were given a second chance", "They were promoted in the temple"], ans: "B" },
+            { cat: 'Zeal', q: "What does God value over outward religious performance (1 Samuel 16:7)?", opts: ["Physical contributions", "Truth in the inward parts and a pure heart", "Church attendance", "The complexity of the ceremony"], ans: "B" },
+            { cat: 'Zeal', q: "Which of the following is part of the 'Process of Repentance'?", opts: ["Seeking recognition", "Making amends and restitution where possible", "Feeling regret without change", "Repeating the same mistakes"], ans: "B" },
+            { cat: 'Zeal', q: "What is a major spiritual impact of repentance according to Isaiah 59:2?", opts: ["Physical health improvement", "Acting as a restart button", "It removes the barrier between man and God", "It ensures no earthly consequences"], ans: "C" },
+            { cat: 'Zeal', q: "According to the lesson, what is the definition of forgiveness?", opts: ["Forgetting that an event ever happened", "Choosing to release resentment and seek peace instead of revenge", "Waiting for the other person to apologize first", "Accepting the wrong behavior as correct"], ans: "B" },
+            { cat: 'Zeal', q: "What is one major spiritual effect of holding onto unforgiveness (Mark 11:25-26)?", opts: ["It causes physical exhaustion", "It blocks God from forgiving our own sins", "It makes a person work harder", "It prevents future reconciliation"], ans: "B" },
+            { cat: 'Zeal', q: "What does Hebrews 12:14 state is the consequence of living without holiness?", opts: ["No man shall see the Lord", "One will lose their material possessions", "Prayers will only be answered occasionally", "Relationships will be destroyed"], ans: "A" },
+            { cat: 'Zeal', q: "What has God reserved for believers in heaven according to 1 Peter 1:4?", opts: ["A crown of righteousness", "An inheritance incorruptible and that fadeth not away", "A city with foundations", "Many mansions in the sky"], ans: "B" },
+            { cat: 'Zeal', q: "What is the result of finding spiritual joy even in times of trial (Nehemiah 8:10)?", opts: ["The joy of the Lord is your strength", "Count it all joy", "Be of good cheer", "A merry heart doeth good"], ans: "A" },
+            { cat: 'Zeal', q: "What is required to receive divine direction according to Proverbs 3:5-6?", opts: ["Leaning on your own understanding", "Trusting in the Lord and acknowledging Him in all ways", "Following your imagination", "Focusing on physical wealth"], ans: "B" },
+            { cat: 'Zeal', q: "Into whose image are believers being changed as they behold the glory of the Lord (2 Corinthians 3:18)?", opts: ["The image of the world", "The image of the fathers", "The same image from glory to glory", "The image of principalities"], ans: "C" },
+            { cat: 'Zeal', q: "What is the biblical response to peer pressure from 'sinners' according to Proverbs 1:10?", opts: ["Walk in the same way", "My son, if sinners entice thee, consent thou not", "Run to do evil", "Hear the instruction of thy father"], ans: "B" },
+            { cat: 'Zeal', q: "Why is it important to glorify God in your body according to 1 Corinthians 6:19-20?", opts: ["Because the body is for the world", "Because your body is the temple of the Holy Ghost", "Because bodily exercise profiteth little", "Because sin should reign in your body"], ans: "B" },
+            { cat: 'Zeal', q: "Which verse supports the belief that God created humanity with two specific genders?", opts: ["Genesis 1:27", "Galatians 3:26", "Galatians 3:28", "Genesis 1:25"], ans: "A" },
+            { cat: 'Zeal', q: "What is required of believers when presenting their bodies to God according to Romans 12:1?", opts: ["To do business", "A living sacrifice, which is your reasonable service", "To be bought with a price", "To eat or drink"], ans: "B" },
+            { cat: 'Zeal', q: "According to Hebrews 13:4, how should marriage be viewed?", opts: ["The fashion of the world passes", "Marriage is honourable in all, and the bed undefiled", "Be not unequally yoked", "Bound by the law"], ans: "B" },
+            { cat: 'Zeal', q: "What is the result of confessing and forsaking sins according to 1 John 1:9?", opts: ["He shall cleanse us from all unrighteousness", "A just man riseth up again", "They shall be as white as snow", "He shall not prosper"], ans: "A" },
+            { cat: 'Zeal', q: "What was Joseph’s strategy for ensuring survival during the famine in Egypt?", opts: ["Borrowing from other nations", "Taking up a fifth part of the land in the plenteous years", "Spending all resources immediately", "Selling all the cattle"], ans: "B" },
+            { cat: 'Zeal', q: "What is the result of gathering wealth by labour according to Proverbs 13:11?", opts: ["Wealth shall be increased", "He shall fall into a snare", "A strong city", "The root of all evil"], ans: "A" },
+            { cat: 'Zeal', q: "What is the primary safeguard against the trap of gambling according to Philippians 4:19?", opts: ["The love of money is the root of evil", "My God shall supply all your need", "Cease from thine own wisdom", "Carry nothing out of this world"], ans: "B" },
+            { cat: 'Zeal', q: "Why is suicide a violation of God’s law according to 1 Corinthians 3:16-17?", opts: ["Because life is a personal possession", "Because the temple of God is holy, which temple ye are", "Because the fashion of the world passes", "Because the body is for the world"], ans: "B" },
+            { cat: 'Zeal', q: "What is the believer's assurance in times of trouble according to Psalm 46:1?", opts: ["God is our refuge and strength, a very present help", "His anger is for a moment", "The Lord is my shepherd", "Trust in thine own heart"], ans: "A" },
+            { cat: 'Zeal', q: "What is the purpose of 'Capacity Building' based on the Parable of the Talents (Matthew 25:14-30)?", opts: ["To be free from all trials", "To prepare for greater responsibilities and productivity", "To reach a high position in the church only", "To boast of one's own strength"], ans: "B" },
+            { cat: 'Zeal', q: "What action is encouraged for Capacity Building based on Ezra 10:4?", opts: ["Wait for others to act", "Avoid any form of discomfort", "Be of good courage, and do it", "Focus on academic study only"], ans: "C" },
+            { cat: 'Zeal', q: "What was the result of David's dedication at the altar in 1 Chronicles 21:26?", opts: ["He was told to build a house", "The Lord answered him from heaven by fire", "He gathered much gold", "A great wind destroyed the altar"], ans: "B" },
+            { cat: 'Zeal', q: "What instruction does Deuteronomy 6:7 give to parents regarding God's words?", opts: ["Write them on the gates", "Keep them a secret", "Thou shalt teach them diligently unto thy children", "Only speak of them during festivals"], ans: "C" },
+            { cat: 'Zeal', q: "What is a key component of developing a strategy according to Proverbs 24:6?", opts: ["Isolation", "Safety in a multitude of counselors", "Never changing a plan", "Relying on physical strength"], ans: "B" },
+            { cat: 'Zeal', q: "What is the promise for those who do not grow weary in well-doing (Galatians 6:9)?", opts: ["They shall receive the praise of men", "In due season we shall reap, if we faint not", "They will never face challenges", "They should stop working"], ans: "B" },
+            { cat: 'Zeal', q: "What does 1 Peter 3:15 instruct believers to be ready to do?", opts: ["Hide their faith from the public", "Give an answer to every man that asketh a reason for the hope", "Engage in heated debates and arguments", "Only speak in church settings"], ans: "B" },
+            { cat: 'Zeal', q: "What is the encouragement for believers facing public defense in Matthew 10:19-20?", opts: ["Prepare for years in school", "The Spirit of your Father which speaketh in you", "Ensure everyone agrees with your views", "Be solely responsible for the decision"], ans: "B" },
+            { cat: 'Zeal', q: "What does Proverbs 22:7 state regarding the relationship between a borrower and a lender?", opts: ["The borrower is the master", "They are equal in all things", "The borrower is servant to the lender", "No interest should ever be paid"], ans: "C" },
+            { cat: 'Zeal', q: "What is the first step before embarking on a major project (Luke 14:28)?", opts: ["Ask all the neighbors", "Sit down first, and count the cost", "Start building immediately", "Find the tallest hill"], ans: "B" },
+            { cat: 'Zeal', q: "How does Psalm 139:14 describe the creation of a human being?", opts: ["I should follow the trends", "I am fearfully and wonderfully made", "Focus on outward appearance", "I am always anxious"], ans: "B" },
+            { cat: 'Zeal', q: "What distinction is made in Deuteronomy 22:5 regarding apparel?", opts: ["Everyone should wear identical clothing", "The woman shall not wear that which pertaineth unto a man", "Only wear gold and silver", "The price of clothing matters most"], ans: "B" },
+            { cat: 'Zeal', q: "According to Proverbs 27:17, what is the benefit of an accountability partner?", opts: ["A strong defense", "Iron sharpeneth iron", "Walk with wise men", "A friend loveth at all times"], ans: "B" },
+            { cat: 'Zeal', q: "What is the instruction regarding guarding the heart (Proverbs 4:23)?", opts: ["Out of it are the issues of life", "The heart is deceitful", "Thy days shall be long", "Man looketh on the outward appearance"], ans: "A" },
+            { cat: 'Zeal', q: "Which insect is a sluggard told to consider for wisdom (Proverbs 6:6-8)?", opts: ["Locust", "Ant", "Bee", "Spider"], ans: "B" },
+            { cat: 'Zeal', q: "What is the result of making haste to be rich (Proverbs 21:5)?", opts: ["Plenteousness", "Wealth and honour", "Poverty and want", "Great honour"], ans: "C" },
+            { cat: 'Zeal', q: "What should a believer do with their worries (1 Peter 5:7)?", opts: ["Hide them from everyone", "Casting all your care upon him; for he careth for you", "Work harder to fix them", "Ignore them completely"], ans: "B" },
+            { cat: 'Zeal', q: "How should a believer handle their mind according to Romans 12:2?", opts: ["Follow the trends of the world", "Focus only on financial gain", "Be ye transformed by the renewing of your mind", "Avoid studying and learning"], ans: "C" },
+            { cat: 'Zeal', q: "According to Hebrews 11:1, what is the definition of faith?", opts: ["A feeling of being happy", "The substance of things hoped for, the evidence of things not seen", "Having great worldly wisdom", "The ability to predict the future"], ans: "B" },
+            { cat: 'Zeal', q: "How can a believer reflect God's heart (Ephesians 4:32)?", opts: ["Be ye angry", "Be ye followers", "Be ye kind one to another, tenderhearted", "Be not unequally yoked"], ans: "C" },
+            { cat: 'Zeal', q: "What is the result of a king/leader judging with justice (Proverbs 29:4)?", opts: ["He shall increase his riches", "The king by judgment establisheth the land", "All the people shall rejoice", "He shall have long life"], ans: "B" },
+            { cat: 'Zeal', q: "What is the principle of servant leadership (Mark 10:45)?", opts: ["To sit on a golden throne", "To destroy the law", "To minister, and to give his life a ransom for many", "To gather great armies"], ans: "C" },
+            { cat: 'Zeal', q: "What is the principle regarding serving two masters (Matthew 6:24)?", opts: ["The world is too large", "No man can serve two masters", "Focus on the Sabbath only", "To be a light in the world"], ans: "B" },
+            { cat: 'Zeal', q: "What is the warning regarding sin in Numbers 32:23?", opts: ["You will be forgiven immediately", "Be sure your sin will find you out", "You can cover your tracks", "He shall be rewarded"], ans: "B" },
+            { cat: 'Zeal', q: "What is required before a person can be baptized (Acts 8:36-38)?", opts: ["Give away all possessions", "Recite the whole law", "If thou believest with all thine heart, thou mayest", "Wait for the temple"], ans: "C" },
+            { cat: 'Zeal', q: "What is the promise regarding the power from on high (Luke 24:49)?", opts: ["Silver and gold", "Be endued with power from on high", "No harm will come", "Kings over nations"], ans: "B" },
+            { cat: 'Zeal', q: "What is the command regarding the Lord’s Supper in 1 Corinthians 11:28?", opts: ["Fast for forty days", "Let a man examine himself", "Wash your feet", "Confess your sins aloud"], ans: "B" },
+            { cat: 'Zeal', q: "What kind of peace does Jesus give (John 14:27)?", opts: ["A period of sleep and silence", "Not as the world giveth, give I unto you", "Silver and gold", "The power of conquering enemies"], ans: "B" },
+            { cat: 'Zeal', q: "How quickly will believers be changed at the last trumpet (1 Corinthians 15:52)?", opts: ["Over many days and nights", "In a moment, in the twinkling of an eye", "Gradually over a lifetime", "Only after the world has achieved total peace"], ans: "B" },
+            { cat: 'Zeal', q: "According to 1 Thessalonians 4:16-17, what is the specific order of events when the Lord descends?", opts: ["The living rise first", "All rise together immediately", "The dead in Christ shall rise first: Then we which are alive and remain shall be caught up", "Only spirits ascend"], ans: "C" },
+            { cat: 'Zeal', q: "What is the reward for the righteous and those who win souls (Lesson 50)?", opts: ["The fruit of the righteous is a tree of life; and he that winneth souls is wise", "A crown of gold and silver", "Palaces of the kings", "A burden and sorrow"], ans: "A" },
+            { cat: 'Zeal', q: "What is the promise given to those who humble themselves before the Lord (James 4:10)?", opts: ["Strength to defeat enemies", "He shall lift you up", "Known by all nations", "Treasures that never fade"], ans: "B" },
+        ],
+        "16-19": [
+            { cat: 'Memory verse', q: "According to 2 Corinthians 5:17, what happens to a person in Christ?", opts: ["He is a new creature", "He remains the same", "He becomes poor", "He becomes a king"], ans: "A" },
+            { cat: 'Memory verse', q: "According to John 4:24, God is worshipped in ______.", opts: ["spirit and truth", "songs only", "buildings", "sacrifices only"], ans: "A" },
+            { cat: 'Memory verse', q: "According to John 4:23, true worshippers shall worship the Father in ______.", opts: ["spirit and truth", "wealth and fame", "fear and doubt", "rules and law only"], ans: "A" },
+            { cat: 'Memory verse', q: "According to John 14:6, who is the way, the truth, and the life?", opts: ["Jesus Christ", "Moses", "David", "Abraham"], ans: "A" },
+            { cat: 'Memory verse', q: "According to John 14:26, who teaches and brings all things to remembrance?", opts: ["The Holy Spirit", "Angels", "Prophets", "Kings"], ans: "A" },
+            { cat: 'Memory verse', q: "According to John 4:23, true worshippers are those who worship the Father in _.", opts: ["spirit and truth", "lies and fear", "wealth and power", "noise and confusion"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Romans 12:1, believers should present their bodies as a _.", opts: ["living sacrifice", "dead offering", "broken vessel", "empty gift"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Ephesians 6:18, believers should pray always with _.", opts: ["all prayer and supplication", "silence only", "fear only", "anger"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Psalms 119:11, why should we hide God's word in our hearts?", opts: ["that I might not sin against thee", "to show off", "to forget it", "to hide from people"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Hebrews 11:1, faith is the _ of things hoped for.", opts: ["substance", "doubt", "fear", "shadow"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Psalms 95:1, what should we do to the Rock of our salvation?", opts: ["make a joyful noise", "complain", "be silent", "run away"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Proverbs 12:22, lying lips are _ to the Lord.", opts: ["an abomination", "a joy", "acceptable", "forgotten"], ans: "A" },
+            { cat: 'Memory verse', q: "According to 1 John 1:9, if we confess our sins, He is _ to forgive us.", opts: ["faithful and just", "angry", "slow", "unwilling"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Colossians 3:13, we should _ one another if any has a quarrel.", opts: ["forgive", "fight", "ignore", "hate"], ans: "A" },
+            { cat: 'Memory verse', q: "According to 1 Peter 1:16, God says, 'Be ye _; for I am _.'", opts: ["holy", "rich", "strong", "famous"], ans: "A" },
+            { cat: 'Memory verse', q: "According to 1 Peter 1:8, though we have not seen Him, we _ Him.", opts: ["love", "hate", "forget", "fear"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Philippians 4:7, the peace of God _ all understanding.", opts: ["passeth", "limits", "follows", "destroys"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Galatians 5:16, if we walk in the Spirit, we shall not fulfill the lust of the _.", opts: ["flesh", "mind", "world", "eyes"], ans: "A" },
+            { cat: 'Memory verse', q: "According to 1 Corinthians 6:18, believers should _ fornication.", opts: ["flee", "practice", "ignore", "encourage"], ans: "A" },
+            { cat: 'Memory verse', q: "According to 1 Peter 4:10, as every man hath received the gift, even so _ the same.", opts: ["minister", "hide", "sell", "forget"], ans: "A" },
+            { cat: 'Memory verse', q: "According to 1 Corinthians 15:33, evil communications _ good manners.", opts: ["corrupt", "improve", "create", "follow"], ans: "A" },
+            { cat: 'Memory verse', q: "According to 2 Corinthians 9:7, God loveth a _ giver.", opts: ["cheerful", "sad", "reluctant", "greedy"], ans: "A" },
+            { cat: 'Memory verse', q: "According to 1 Peter 2:17, we should _ all men.", opts: ["honour", "hate", "ignore", "judge"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Joshua 24:15, 'as for me and my house, we will _ the Lord.'", opts: ["serve", "ignore", "forget", "fight"], ans: "A" },
+            { cat: 'Memory verse', q: "According to 1 Peter 4:8, charity shall cover the _ of sins.", opts: ["multitude", "few", "none", "half"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Matthew 28:19, believers are told to go and _ all nations.", opts: ["teach", "fight", "ignore", "fear"], ans: "A" },
+            { cat: 'Memory verse', q: "According to 1 Corinthians 4:2, it is required in stewards that a man be found _.", opts: ["faithful", "rich", "strong", "clever"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Hosea 4:6, people are destroyed for lack of _.", opts: ["knowledge", "money", "food", "friends"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Proverbs 22:3, a prudent man foresees evil and _.", opts: ["hides himself", "ignores it", "runs into it", "celebrates it"], ans: "A" },
+            { cat: 'Memory verse', q: "According to 1 Peter 3:3–4, beauty should be of the _.", opts: ["heart", "clothes only", "hair only", "wealth"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Psalms 101:3, the psalmist will set no _ before his eyes.", opts: ["wicked thing", "good thing", "friend", "book"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Romans 13:8, believers should owe no man anything except _.", opts: ["love", "money", "fear", "anger"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Philippians 4:6, we should be careful for _.", opts: ["nothing", "everything", "many things", "few things"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Philippians 4:8, what should believers think on?", opts: ["things that are true", "evil only", "lies", "fear"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Romans 13:1, higher powers are _ of God.", opts: ["ordained", "rejected", "forgotten", "destroyed"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Proverbs 20:23, what is an abomination to God?", opts: ["diverse weights", "prayer", "giving", "worship"], ans: "A" },
+            { cat: 'Memory verse', q: "According to Acts 2:38, believers receive the gift of the _.", opts: ["Holy Ghost", "money", "land", "fame"], ans: "A" },
+            { cat: 'Memory verse', q: "According to 1 Corinthians 11:24, the broken body of Christ was given for _.", opts: ["you", "angels", "kings only", "no one"], ans: "A" },
+            { cat: 'Memory verse', q: "According to 1 Thessalonians 4:16, the dead in Christ shall _ first.", opts: ["rise", "sleep", "stay", "vanish"], ans: "A" },
+            { cat: 'Memory verse', q: "According to 2 Timothy 4:8, there is laid up a crown of _.", opts: ["righteousness", "gold", "thorns", "silver"], ans: "A" },
+            { cat: 'Bible', q: "Which book immediately follows the Pentateuch?", opts: ["Judges", "Ruth", "Joshua", "1 Samuel"], ans: "C" },
+            { cat: 'Bible', q: "Which of these General Epistles comes after the letters of Peter?", opts: ["James", "Hebrews", "1 John", "Jude"], ans: "C" },
+            { cat: 'Bible', q: "Which of these is NOT one of the General Epistles?", opts: ["Titus", "James", "Jude", "1 Peter"], ans: "A" },
+            { cat: 'Zeal', q: "What is the first step in the process of the New Birth in Christ?", opts: ["Justification", "Repentance", "Hearing the Gospel", "Adoption into God's Family"], ans: "C" },
+            { cat: 'Zeal', q: "What is one of the benefits of new birth in Christ?", opts: ["A physical rebirth of the human body", "Power to love and forgive others", "A life free from all earthly challenges", "Automatic knowledge of all Bible verses"], ans: "B" },
+            { cat: 'Zeal', q: "The word 'worship' originates from an Old English term meaning?", opts: ["To sing loudly", "To give worth or honour", "To attend a church service", "To ask for blessings"], ans: "B" },
+            { cat: 'Zeal', q: "Which of the following is considered a form of worship?", opts: ["Reading and meditating", "Physical exercise", "Sleeping and resting", "Traveling to new places"], ans: "A" },
+            { cat: 'Zeal', q: "Worshipping God should be directed by spirit and truth rather than just which of the following?", opts: ["Songs", "Ceremony", "Prayer", "Fellowship"], ans: "B" },
+            { cat: 'Zeal', q: "One of the reasons stated why we should worship God the Father is that He is the source of:", opts: ["Physical wealth", "All good things", "Earthly power", "Scientific knowledge"], ans: "B" },
+            { cat: 'Zeal', q: "Why is Jesus considered the mediator?", opts: ["Because he defeated death and gave eternal life", "Because he is the mediator between God and humanity", "Because he is worthy of worship in heaven and on earth", "Because he is the fourth man in the fire"], ans: "B" },
+            { cat: 'Zeal', q: "One of the ways to worship Jesus, is through?", opts: ["Scientific study and research", "Physical exercise and training", "Acts of love and service", "Traveling to historical sites"], ans: "C" },
+            { cat: 'Zeal', q: "According to 'Who is the Holy Spirit?', which title is used to describe Him?", opts: ["The First person in the Trinity", "The King of Kings", "Our Comforter and Teacher", "The Creator of the sun and moon"], ans: "C" },
+            { cat: 'Zeal', q: "What is the primary role of the Holy Spirit as mentioned in the lesson (John 14:26)?", opts: ["To provide physical strength", "To teach us all things and bring the Word to our remembrance", "To ensure we never face any temptations", "To judge the actions of others"], ans: "B" },
+            { cat: 'Zeal', q: "A person who truly worships God is considered to be which of the following?", opts: ["A seeker of human approval", "A soul winner", "Someone who only worships through songs", "Someone who follows routine rituals"], ans: "B" },
+            { cat: 'Zeal', q: "According to the lesson, what is required for an individual to become a true worshipper?", opts: ["Being a member of a church choir", "Seeking recognition from others", "Being a consecrated vessel", "Providing lip service without heart"], ans: "C" },
+            { cat: 'Zeal', q: "According to John 14:15, what is a primary way to show our love for Jesus?", opts: ["Offering a living sacrifice", "Using our gifts and talents", "Praying without ceasing", "Keeping and obeying His commandments"], ans: "D" },
+            { cat: 'Zeal', q: "What is the result of worshiping God in a way that purges oneself from dishonor (2 Timothy 2:21)?", opts: ["He shall be a friend of God", "He shall be a vessel unto honour, sanctified", "He shall have all his prayers answered instantly", "He shall receive direction and clarity"], ans: "B" },
+            { cat: 'Zeal', q: "Which of the following scriptural references describes prayer as a weapon that can bring victory and peace in times of fear?", opts: ["Philippians 4:6-7", "1 Thessalonians 5:17", "2 Chronicles 20:15-22", "James 5:16"], ans: "C" },
+            { cat: 'Zeal', q: "What does James 4:3 identify as a common barrier to receiving answers to prayer?", opts: ["Lack of physical preparation", "Asking with wrong motives or to consume it upon lusts", "Not praying for long enough", "Praying in a public place"], ans: "B" },
+            { cat: 'Zeal', q: "Which verse supports the idea that the Word of God brings peace and comfort?", opts: ["Romans 1:16", "Isaiah 41:10", "John 14:27", "Proverbs 16:9"], ans: "C" },
+            { cat: 'Zeal', q: "What does the Word of God provide for the believer according to James 4:7?", opts: ["Clarity of thought", "Victory over sin and the devil", "Knowledge of self", "Worldly wisdom"], ans: "B" },
+            { cat: 'Zeal', q: "How does faith specifically serve as a defense in the life of a believer?", opts: ["It provides physical wealth", "It protects the heart and mind from doubt, fear, and the lies of the enemy", "It ensures immediate answers to every request", "It prevents all trials from occurring"], ans: "B" },
+            { cat: 'Zeal', q: "According to the lesson, what increases a person’s level of faith?", opts: ["Avoiding fellow believers", "Leaning on personal understanding", "Constantly reading, hearing, and meditating on the Word of God", "Waiting for results before believing"], ans: "C" },
+            { cat: 'Zeal', q: "According to 1 Timothy 2:5, what makes true worship possible for humanity?", opts: ["Human intellect", "The mediation of Christ and the help of the Holy Spirit", "Singing songs on Sundays", "Our own emotions"], ans: "B" },
+            { cat: 'Zeal', q: "What is one of the benefits of congregational singing mentioned in the text?", opts: ["To memorize the truth", "A balm for the soul", "Unity and mutual encouragement", "To fulfill a daily routine"], ans: "C" },
+            { cat: 'Zeal', q: "What happened to Nadab and Abihu when they offered 'strange fire' before the Lord (Leviticus 10:1-7)?", opts: ["They were praised for their creativity", "They were struck down by fire for their irreverence", "They were given a second chance", "They were promoted in the temple"], ans: "B" },
+            { cat: 'Zeal', q: "What does God value over outward religious performance (1 Samuel 16:7)?", opts: ["Physical contributions", "Truth in the inward parts and a pure heart", "Church attendance", "The complexity of the ceremony"], ans: "B" },
+            { cat: 'Zeal', q: "Which of the following is part of the 'Process of Repentance'?", opts: ["Seeking recognition", "Making amends and restitution where possible", "Feeling regret without change", "Repeating the same mistakes"], ans: "B" },
+            { cat: 'Zeal', q: "What is a major spiritual impact of repentance according to Isaiah 59:2?", opts: ["Physical health improvement", "Acting as a restart button", "It removes the barrier between man and God", "It ensures no earthly consequences"], ans: "C" },
+            { cat: 'Zeal', q: "According to the lesson, what is the definition of forgiveness?", opts: ["Forgetting that an event ever happened", "Choosing to release resentment and seek peace instead of revenge", "Waiting for the other person to apologize first", "Accepting the wrong behavior as correct"], ans: "B" },
+            { cat: 'Zeal', q: "What is one major spiritual effect of holding onto unforgiveness (Mark 11:25-26)?", opts: ["It causes physical exhaustion", "It blocks God from forgiving our own sins", "It makes a person work harder", "It prevents future reconciliation"], ans: "B" },
+            { cat: 'Zeal', q: "What does Hebrews 12:14 state is the consequence of living without holiness?", opts: ["No man shall see the Lord", "One will lose their material possessions", "Prayers will only be answered occasionally", "Relationships will be destroyed"], ans: "A" },
+            { cat: 'Zeal', q: "What has God reserved for believers in heaven according to 1 Peter 1:4?", opts: ["A crown of righteousness", "An inheritance incorruptible and that fadeth not away", "A city with foundations", "Many mansions in the sky"], ans: "B" },
+            { cat: 'Zeal', q: "What is the result of finding spiritual joy even in times of trial (Nehemiah 8:10)?", opts: ["The joy of the Lord is your strength", "Count it all joy", "Be of good cheer", "A merry heart doeth good"], ans: "A" },
+            { cat: 'Zeal', q: "What is required to receive divine direction according to Proverbs 3:5-6?", opts: ["Leaning on your own understanding", "Trusting in the Lord and acknowledging Him in all ways", "Following your imagination", "Focusing on physical wealth"], ans: "B" },
+            { cat: 'Zeal', q: "Into whose image are believers being changed as they behold the glory of the Lord (2 Corinthians 3:18)?", opts: ["The image of the world", "The image of the fathers", "The same image from glory to glory", "The image of principalities"], ans: "C" },
+            { cat: 'Zeal', q: "What is the biblical response to peer pressure from 'sinners' according to Proverbs 1:10?", opts: ["Walk in the same way", "My son, if sinners entice thee, consent thou not", "Run to do evil", "Hear the instruction of thy father"], ans: "B" },
+            { cat: 'Zeal', q: "Why is it important to glorify God in your body according to 1 Corinthians 6:19-20?", opts: ["Because the body is for the world", "Because your body is the temple of the Holy Ghost", "Because bodily exercise profiteth little", "Because sin should reign in your body"], ans: "B" },
+            { cat: 'Zeal', q: "Which verse supports the belief that God created humanity with two specific genders?", opts: ["Genesis 1:27", "Galatians 3:26", "Galatians 3:28", "Genesis 1:25"], ans: "A" },
+            { cat: 'Zeal', q: "What is required of believers when presenting their bodies to God according to Romans 12:1?", opts: ["To do business", "A living sacrifice, which is your reasonable service", "To be bought with a price", "To eat or drink"], ans: "B" },
+            { cat: 'Zeal', q: "According to Hebrews 13:4, how should marriage be viewed?", opts: ["The fashion of the world passes", "Marriage is honourable in all, and the bed undefiled", "Be not unequally yoked", "Bound by the law"], ans: "B" },
+            { cat: 'Zeal', q: "What is the result of confessing and forsaking sins according to 1 John 1:9?", opts: ["He shall cleanse us from all unrighteousness", "A just man riseth up again", "They shall be as white as snow", "He shall not prosper"], ans: "A" },
+            { cat: 'Zeal', q: "What was Joseph’s strategy for ensuring survival during the famine in Egypt?", opts: ["Borrowing from other nations", "Taking up a fifth part of the land in the plenteous years", "Spending all resources immediately", "Selling all the cattle"], ans: "B" },
+            { cat: 'Zeal', q: "What is the result of gathering wealth by labour according to Proverbs 13:11?", opts: ["Wealth shall be increased", "He shall fall into a snare", "A strong city", "The root of all evil"], ans: "A" },
+            { cat: 'Zeal', q: "What is the primary safeguard against the trap of gambling according to Philippians 4:19?", opts: ["The love of money is the root of evil", "My God shall supply all your need", "Cease from thine own wisdom", "Carry nothing out of this world"], ans: "B" },
+            { cat: 'Zeal', q: "Why is suicide a violation of God’s law according to 1 Corinthians 3:16-17?", opts: ["Because life is a personal possession", "Because the temple of God is holy, which temple ye are", "Because the fashion of the world passes", "Because the body is for the world"], ans: "B" },
+            { cat: 'Zeal', q: "What is the believer's assurance in times of trouble according to Psalm 46:1?", opts: ["God is our refuge and strength, a very present help", "His anger is for a moment", "The Lord is my shepherd", "Trust in thine own heart"], ans: "A" },
+            { cat: 'Zeal', q: "What is the purpose of 'Capacity Building' based on the Parable of the Talents (Matthew 25:14-30)?", opts: ["To be free from all trials", "To prepare for greater responsibilities and productivity", "To reach a high position in the church only", "To boast of one's own strength"], ans: "B" },
+            { cat: 'Zeal', q: "What action is encouraged for Capacity Building based on Ezra 10:4?", opts: ["Wait for others to act", "Avoid any form of discomfort", "Be of good courage, and do it", "Focus on academic study only"], ans: "C" },
+            { cat: 'Zeal', q: "What was the result of David's dedication at the altar in 1 Chronicles 21:26?", opts: ["He was told to build a house", "The Lord answered him from heaven by fire", "He gathered much gold", "A great wind destroyed the altar"], ans: "B" },
+            { cat: 'Zeal', q: "What instruction does Deuteronomy 6:7 give to parents regarding God's words?", opts: ["Write them on the gates", "Keep them a secret", "Thou shalt teach them diligently unto thy children", "Only speak of them during festivals"], ans: "C" },
+            { cat: 'Zeal', q: "What is a key component of developing a strategy according to Proverbs 24:6?", opts: ["Isolation", "Safety in a multitude of counselors", "Never changing a plan", "Relying on physical strength"], ans: "B" },
+            { cat: 'Zeal', q: "What is the promise for those who do not grow weary in well-doing (Galatians 6:9)?", opts: ["They shall receive the praise of men", "In due season we shall reap, if we faint not", "They will never face challenges", "They should stop working"], ans: "B" },
+            { cat: 'Zeal', q: "What does 1 Peter 3:15 instruct believers to be ready to do?", opts: ["Hide their faith from the public", "Give an answer to every man that asketh a reason for the hope", "Engage in heated debates and arguments", "Only speak in church settings"], ans: "B" },
+            { cat: 'Zeal', q: "What is the encouragement for believers facing public defense in Matthew 10:19-20?", opts: ["Prepare for years in school", "The Spirit of your Father which speaketh in you", "Ensure everyone agrees with your views", "Be solely responsible for the decision"], ans: "B" },
+            { cat: 'Zeal', q: "What does Proverbs 22:7 state regarding the relationship between a borrower and a lender?", opts: ["The borrower is the master", "They are equal in all things", "The borrower is servant to the lender", "No interest should ever be paid"], ans: "C" },
+            { cat: 'Zeal', q: "What is the first step before embarking on a major project (Luke 14:28)?", opts: ["Ask all the neighbors", "Sit down first, and count the cost", "Start building immediately", "Find the tallest hill"], ans: "B" },
+            { cat: 'Zeal', q: "How does Psalm 139:14 describe the creation of a human being?", opts: ["I should follow the trends", "I am fearfully and wonderfully made", "Focus on outward appearance", "I am always anxious"], ans: "B" },
+            { cat: 'Zeal', q: "What distinction is made in Deuteronomy 22:5 regarding apparel?", opts: ["Everyone should wear identical clothing", "The woman shall not wear that which pertaineth unto a man", "Only wear gold and silver", "The price of clothing matters most"], ans: "B" },
+            { cat: 'Zeal', q: "According to Proverbs 27:17, what is the benefit of an accountability partner?", opts: ["A strong defense", "Iron sharpeneth iron", "Walk with wise men", "A friend loveth at all times"], ans: "B" },
+            { cat: 'Zeal', q: "What is the instruction regarding guarding the heart (Proverbs 4:23)?", opts: ["Out of it are the issues of life", "The heart is deceitful", "Thy days shall be long", "Man looketh on the outward appearance"], ans: "A" },
+            { cat: 'Zeal', q: "Which insect is a sluggard told to consider for wisdom (Proverbs 6:6-8)?", opts: ["Locust", "Ant", "Bee", "Spider"], ans: "B" },
+            { cat: 'Zeal', q: "What is the result of making haste to be rich (Proverbs 21:5)?", opts: ["Plenteousness", "Wealth and honour", "Poverty and want", "Great honour"], ans: "C" },
+            { cat: 'Zeal', q: "What should a believer do with their worries (1 Peter 5:7)?", opts: ["Hide them from everyone", "Casting all your care upon him; for he careth for you", "Work harder to fix them", "Ignore them completely"], ans: "B" },
+            { cat: 'Zeal', q: "How should a believer handle their mind according to Romans 12:2?", opts: ["Follow the trends of the world", "Focus only on financial gain", "Be ye transformed by the renewing of your mind", "Avoid studying and learning"], ans: "C" },
+            { cat: 'Zeal', q: "According to Hebrews 11:1, what is the definition of faith?", opts: ["A feeling of being happy", "The substance of things hoped for, the evidence of things not seen", "Having great worldly wisdom", "The ability to predict the future"], ans: "B" },
+            { cat: 'Zeal', q: "How can a believer reflect God's heart (Ephesians 4:32)?", opts: ["Be ye angry", "Be ye followers", "Be ye kind one to another, tenderhearted", "Be not unequally yoked"], ans: "C" },
+            { cat: 'Zeal', q: "What is the result of a king/leader judging with justice (Proverbs 29:4)?", opts: ["He shall increase his riches", "The king by judgment establisheth the land", "All the people shall rejoice", "He shall have long life"], ans: "B" },
+            { cat: 'Zeal', q: "What is the principle of servant leadership (Mark 10:45)?", opts: ["To sit on a golden throne", "To destroy the law", "To minister, and to give his life a ransom for many", "To gather great armies"], ans: "C" },
+            { cat: 'Zeal', q: "What is the principle regarding serving two masters (Matthew 6:24)?", opts: ["The world is too large", "No man can serve two masters", "Focus on the Sabbath only", "To be a light in the world"], ans: "B" },
+            { cat: 'Zeal', q: "What is the warning regarding sin in Numbers 32:23?", opts: ["You will be forgiven immediately", "Be sure your sin will find you out", "You can cover your tracks", "He shall be rewarded"], ans: "B" },
+            { cat: 'Zeal', q: "What is required before a person can be baptized (Acts 8:36-38)?", opts: ["Give away all possessions", "Recite the whole law", "If thou believest with all thine heart, thou mayest", "Wait for the temple"], ans: "C" },
+            { cat: 'Zeal', q: "What is the promise regarding the power from on high (Luke 24:49)?", opts: ["Silver and gold", "Be endued with power from on high", "No harm will come", "Kings over nations"], ans: "B" },
+            { cat: 'Zeal', q: "What is the command regarding the Lord’s Supper in 1 Corinthians 11:28?", opts: ["Fast for forty days", "Let a man examine himself", "Wash your feet", "Confess your sins aloud"], ans: "B" },
+            { cat: 'Zeal', q: "What kind of peace does Jesus give (John 14:27)?", opts: ["A period of sleep and silence", "Not as the world giveth, give I unto you", "Silver and gold", "The power of conquering enemies"], ans: "B" },
+            { cat: 'Zeal', q: "How quickly will believers be changed at the last trumpet (1 Corinthians 15:52)?", opts: ["Over many days and nights", "In a moment, in the twinkling of an eye", "Gradually over a lifetime", "Only after the world has achieved total peace"], ans: "B" },
+            { cat: 'Zeal', q: "According to 1 Thessalonians 4:16-17, what is the specific order of events when the Lord descends?", opts: ["The living rise first", "All rise together immediately", "The dead in Christ shall rise first: Then we which are alive and remain shall be caught up", "Only spirits ascend"], ans: "C" },
+            { cat: 'Zeal', q: "What is the reward for the righteous and those who win souls (Lesson 50)?", opts: ["The fruit of the righteous is a tree of life; and he that winneth souls is wise", "A crown of gold and silver", "Palaces of the kings", "A burden and sorrow"], ans: "A" },
+            { cat: 'Zeal', q: "What is the promise given to those who humble themselves before the Lord (James 4:10)?", opts: ["Strength to defeat enemies", "He shall lift you up", "Known by all nations", "Treasures that never fade"], ans: "B" }
+        ]
+    };
+
+    let activeQuestions = [], currentIndex = 0, scores = { zeal: 0, spelling: 0 }, timeLeft = 0, timerInterval, userData = {};
+
+    function showView(id) {
+        document.querySelectorAll('#app > div').forEach(div => div.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    function showInstructions() {
+        userData = { 
+            name: document.getElementById('reg-name').value.trim().toUpperCase(), 
+            parish: document.getElementById('reg-parish').value.trim().toUpperCase(), 
+            age: document.getElementById('reg-age').value, 
+            area: document.getElementById('reg-area').value.toUpperCase() 
+        };
+        if(!userData.name || !userData.age || !userData.parish) return alert("Please fill all details!");
+        document.getElementById('inst-details').innerHTML = `<div class="p-4 bg-blue-50 rounded-xl border-l-4 border-blue-500 text-sm"><p><strong>Zeal:</strong> 40 Questions (40 mins)</p><p><strong>Spelling:</strong> 20 Words (20 mins)</p></div>`;
+        showView('instructions-view');
+    }
+
+    function startQuiz() {
+        let spPool = userData.age === '9-12' ? sp_9_12 : (userData.age === '13-15' ? sp_13_15 : sp_16_19);
+        
+        let poolMCQ = mcqs[userData.age] || [];
+        if(userData.age === '13-15') poolMCQ = [...mcqs["9-12"], ...mcqs["13-15"]];
+        if(userData.age === '16-19') poolMCQ = [...mcqs["9-12"], ...mcqs["13-15"], ...mcqs["16-19"]];
+
+        const zeal = poolMCQ.sort(() => 0.5 - Math.random()).slice(0, 40).map(q => ({...q, type: 'mcq'}));
+        const genSp = spPool.gen.sort(() => 0.5 - Math.random()).slice(0, 10).map(w => ({ type: 'spell', cat: 'Spelling (Gen)', q: w }));
+        const bibSp = spPool.bib.sort(() => 0.5 - Math.random()).slice(0, 10).map(w => ({ type: 'spell', cat: 'Spelling (Bible)', q: w }));
+        
+        activeQuestions = [...zeal, ...genSp, ...bibSp];
+        currentIndex = 0; 
+        timeLeft = 40 * 60;
+        showView('quiz-view');
+        document.getElementById('progress-container').classList.remove('hidden');
+        startTimer();
+        renderQuestion();
+    }
+
+    function renderQuestion() {
+        const q = activeQuestions[currentIndex];
+        if(q.type === 'spell' && currentIndex === 40) timeLeft = 20 * 60;
+        document.getElementById('progress-bar').style.width = ((currentIndex + 1) / activeQuestions.length * 100) + "%";
+        document.getElementById('progress-text').innerText = `${currentIndex + 1} / ${activeQuestions.length}`;
+        document.getElementById('q-cat').innerText = q.cat;
+        document.getElementById('q-text').innerText = q.type === 'spell' ? "Listen and Spell the word:" : q.q;
+        
+        const box = document.getElementById('options');
+        if(q.type === 'mcq') {
+            box.innerHTML = q.opts.map((opt, i) => `
+                <label class="option-label block p-4 rounded-xl cursor-pointer flex items-center border-2 border-slate-100 mb-2">
+                    <input type="radio" name="quiz-opt" value="${['A','B','C','D'][i]}" class="hidden">
+                    <span class="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg text-xs font-bold mr-3">${['A','B','C','D'][i]}</span>
+                    <span>${opt}</span>
+                </label>`).join('');
+            
+            // LOGIC UPDATE: Handle highlighting properly
+            document.querySelectorAll('.option-label').forEach(label => {
+                label.onclick = function() {
+                    document.querySelectorAll('.option-label').forEach(ol => {
+                        ol.classList.remove('border-blue-600', 'bg-blue-50', 'ring-2', 'ring-blue-200');
+                    });
+                    this.classList.add('border-blue-600', 'bg-blue-50', 'ring-2', 'ring-blue-200');
+                    this.querySelector('input').checked = true;
+                };
+            });
+        } else {
+            box.innerHTML = `
+                <button onclick="speak('${q.q}')" class="w-full bg-blue-100 py-10 rounded-2xl font-black text-blue-600 text-2xl mb-4">🔊 TAP TO HEAR</button>
+                <input type="text" id="spell-input" class="w-full p-5 border-2 rounded-2xl text-center uppercase font-bold text-xl outline-blue-600" autocomplete="off">`;
+        }
+    }
+
+    function nextQuestion() {
+        const q = activeQuestions[currentIndex];
+        if(q.type === 'mcq') {
+            const sel = document.querySelector('input[name="quiz-opt"]:checked');
+            if(!sel) return alert("Select an answer!");
+            if(sel.value === q.ans) scores.zeal++;
+        } else {
+            const val = document.getElementById('spell-input').value.trim().toLowerCase();
+            if(!val) return alert("Please type the word!");
+            if(val === q.q.toLowerCase()) scores.spelling += 3;
+        }
+
+        currentIndex++;
+        if(currentIndex < activeQuestions.length) {
+            // Logic Fix: Small delay so highlight is visible before rendering next
+            setTimeout(renderQuestion, 200);
+        } else {
+            endQuiz();
+        }
+    }
+
+    function startTimer() { 
+        timerInterval = setInterval(() => { 
+            timeLeft--; 
+            let m = Math.floor(timeLeft / 60), s = timeLeft % 60; 
+            document.getElementById('quiz-timer').innerText = `${m}:${s < 10 ? '0'+s : s}`; 
+            if(timeLeft <= 0) endQuiz(); 
+        }, 1000);
+    }
+
+    function endQuiz() {
+            clearInterval(timerInterval);
+            showView('result-view');
+            
+            // Display results to the student
+            document.getElementById('student-summary').innerText = `${userData.name} | ${userData.parish}`;
+            document.getElementById('final-scores').innerHTML = `
+                <div class="flex justify-between"><span>Zeal:</span><strong>${scores.zeal}/40</strong></div>
+                <div class="flex justify-between"><span>Spelling:</span><strong>${scores.spelling}/60</strong></div>
+                <div class="flex justify-between border-t pt-2 mt-2 font-black text-blue-700"><span>TOTAL:</span><strong>${scores.zeal+scores.spelling}/100</strong></div>`;
+
+            // Prepare the full data object including results 
+            const resultData = { 
+                ...userData, 
+                zealScore: scores.zeal, 
+                spellingScore: scores.spelling, 
+                totalScore: scores.zeal + scores.spelling, 
+                time: new Date().toLocaleString() 
+            };
+
+            resultData.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+            // Save to local storage for backup (admin view)
+            let history = JSON.parse(localStorage.getItem('quizResults') || '[]');
+            history.push(resultData);
+            localStorage.setItem('quizResults', JSON.stringify(history));
+
+            // Queue for sync; sent now if online, otherwise automatically later
+            const q = getQueue(); q.push(resultData); setQueue(q);
+            flushQueue(true);
+        }
+
+    // ---------- Offline sync queue ----------
+    function getQueue() { try { return JSON.parse(localStorage.getItem('pendingResults') || '[]'); } catch(e) { return []; } }
+    function setQueue(q) { localStorage.setItem('pendingResults', JSON.stringify(q)); }
+    let flushing = false;
+    async function flushQueue(showStatus) {
+        const el = document.getElementById('sync-status');
+        let q = getQueue();
+        if (!q.length) return;
+        if (!navigator.onLine) {
+            if (showStatus && el) el.innerText = "📴 SAVED OFFLINE: WILL SEND AUTOMATICALLY WHEN ONLINE";
+            return;
+        }
+        if (flushing) return;
+        flushing = true;
+        try {
+            for (const item of q.slice()) {
+                // no-cors: the request is sent but the reply is opaque, so success = no network error
+                await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(item) });
+                setQueue(getQueue().filter(r => r.id !== item.id));
+            }
+            if (showStatus && el) el.innerText = "✅ SENT TO CHURCH DATABASE";
+        } catch (e) {
+            if (showStatus && el) el.innerText = "⚠️ SAVED ON DEVICE: WILL RETRY AUTOMATICALLY (OR USE WHATSAPP)";
+        } finally { flushing = false; }
+    }
+    window.addEventListener('online', () => flushQueue(true));
+    window.addEventListener('load', () => flushQueue(false));
+    setInterval(() => flushQueue(false), 60000);
+
+    // ---------- Service worker (offline support) ----------
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+        window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+
+    function speak(word) { window.speechSynthesis.speak(new SpeechSynthesisUtterance(word)); }
+    
+    function sendWhatsApp() {
+        const msg = `*RCCG LHZ RESULT*\n*Student:* ${userData.name}\n*Parish:* ${userData.parish}\n*Age Group:* ${userData.age}\n*Zeal:* ${scores.zeal}\n*Spelling:* ${scores.spelling}\n*TOTAL:* ${scores.zeal+scores.spelling}/100`;
+        window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`);
+    }
+
+    function showAdmin() { showView('admin-view'); }
+    
+    function checkAdmin() {
+        if(document.getElementById('admin-pass').value === ADMIN_PASS) {
+            document.getElementById('admin-content').classList.remove('hidden');
+            document.getElementById('admin-login-btn').classList.add('hidden');
+            loadResults();
+        } else { alert("Wrong Password"); }
+    }
+    
+    function loadResults() {
+        const results = JSON.parse(localStorage.getItem('quizResults') || '[]');
+        document.getElementById('results-list').innerHTML = results.map(r => `<div class="p-2 bg-gray-50 border-b">${r.name} - ${r.totalScore ?? r.total ?? '?'}/100</div>`).join('') || "No local results yet.";
+        const pend = getQueue().length;
+        if (pend) document.getElementById('results-list').insertAdjacentHTML('afterbegin', `<div class="p-2 mb-2 bg-yellow-50 text-yellow-800 text-sm font-bold">⏳ ${pend} result(s) waiting to sync</div>`);
+    }
+    
+    function clearResults() { if(confirm("Clear all results?")) { localStorage.removeItem('quizResults'); loadResults(); } }
+
+        function sendWhatsApp() {
+            const total = scores.mv + scores.bz + scores.bb + scores.sbk + scores.sgk;
+            const msg = `*RCCG LHZ RESULT*\n*Student:* ${userData.name}\n*Parish:* ${userData.parish}\n*Age:* ${userData.age}\n*Zeal Quiz:* ${scores.mv+scores.bz+scores.bb}/40\n*Spelling:* ${scores.sbk+scores.sgk}/60\n*TOTAL:* ${total}/100`;
+            window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`);
+        }
+    </script>
+</body>
+</html>
